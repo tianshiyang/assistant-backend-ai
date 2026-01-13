@@ -5,6 +5,7 @@
 @Author  : tianshiyang
 @File    : account_handler.py
 """
+from pkg.response import validate_error_json, success_json
 from schema.account_schema import AccountUserLoginReq
 from service.account_service import account_user_login_service
 
@@ -13,6 +14,6 @@ from service.account_service import account_user_login_service
 def account_user_login_handler() -> str:
     req = AccountUserLoginReq()
     if not req.validate():
-        return '222'
+        return validate_error_json(req.errors)
     resp = account_user_login_service(req)
-    return resp
+    return success_json(resp)
