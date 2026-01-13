@@ -5,3 +5,7 @@
 @Author  : tianshiyang
 @File    : __init__.py.py
 """
+from .account_routes import account_blueprint
+__all__ = [
+    "account_blueprint"
+]
