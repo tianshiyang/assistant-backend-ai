@@ -29,7 +29,7 @@ class BaseModel(db.Model):
         comment="创建时间"
     )
 
-    update_at: Mapped[datetime] = mapped_column(
+    updated_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True),
         nullable=False,
         server_default=db.text("now()"),

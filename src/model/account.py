@@ -52,17 +52,3 @@ class Account(BaseModel):
         nullable=False,
         comment="加密后的用户密码"
     )
-
-    created_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True),
-        nullable=False,
-        server_default=db.text("now()"),
-        comment="创建时间"
-    )
-
-    update_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True),
-        nullable=False,
-        server_default=db.text("now()"),
-        comment="更新时间",
-    )
