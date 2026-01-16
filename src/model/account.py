@@ -9,7 +9,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import UniqueConstraint, UUID, Text, String, VARCHAR, TIMESTAMP
+from sqlalchemy import UniqueConstraint, UUID, Text, TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column
 
 from model.base_model import BaseModel
@@ -53,12 +53,6 @@ class Account(BaseModel):
         comment="加密后的用户密码"
     )
 
-    account_status: Mapped[str] = mapped_column(
-        VARCHAR(10),
-        nullable=False,
-        comment="用户状态：using-使用中；logout-注销",
-    )
-
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True),
         nullable=False,
@@ -72,30 +66,3 @@ class Account(BaseModel):
         server_default=db.text("now()"),
         comment="更新时间",
     )
-
-    # def __repr__(self) -> str:
-    #     return f"<Account id={self.id} username={self.username}>"
-
-# class User(BaseModel):
-#     """
-#     用户表模型
-#     """
-#     __tablename__ = 'users'
-#
-#     username = db.Column(db.String(32), unique=True, nullable=False, index=True, comment='用户名')
-#     password_hash = db.Column(db.String(255), nullable=False, comment='密码哈希值')
-#     email = db.Column(db.String(100), unique=True, nullable=True, comment='邮箱')
-#     is_active = db.Column(db.Boolean, default=True, nullable=False, comment='是否激活')
-#
-#     def __repr__(self):
-#         return f'<User {self.username}>'
-#
-#     @classmethod
-#     def get_by_username(cls, username):
-#         """根据用户名获取用户"""
-#         return cls.query.filter_by(username=username).first()
-#
-#     @classmethod
-#     def get_by_email(cls, email):
-#         """根据邮箱获取用户"""
-#         return cls.query.filter_by(email=email).first()

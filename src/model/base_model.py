@@ -48,26 +48,25 @@ class BaseModel(db.Model):
             result[column.name] = value
         return result
     
-    # def create(self):
-    #     """保存到数据库"""
-    #     db.session.add(self)
-    #     db.session.commit()
-    #     return self
-    #
-    # def delete(self):
-    #     """从数据库删除"""
-    #     db.session.delete(self)
-    #     db.session.commit()
-    #
-    # @classmethod
-    # def get(cls, id):
-    #     """根据 ID 获取记录"""
-    #     return cls.query.get(id)
-    #
-    # @classmethod
-    # def get_all(cls):
-    #     """获取所有记录"""
-    #     return cls.query.all()
+    def create(self):
+        """保存到数据库"""
+        try:
+            db.session.add(self)
+            db.session.commit()
+            return self
+        except Exception as e:
+            db.session.rollback()
+            raise e
+
+    def delete(self):
+        """从数据库删除"""
+        try:
+            db.session.delete(self)
+            db.session.commit()
+            return self
+        except Exception as e:
+            db.session.rollback()
+            raise e
     
     def __repr__(self):
         return f'<{self.__class__.__name__} {self.id}>'
