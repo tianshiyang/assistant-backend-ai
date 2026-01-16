@@ -7,7 +7,6 @@
 """
 from .base_model import BaseModel
 from .account import Account
-
 __all__ = [
     "BaseModel",
     "Account"

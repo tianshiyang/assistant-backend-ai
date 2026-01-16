@@ -6,7 +6,7 @@
 @File    : account_service.py
 """
 from config.db_config import db
-from pkg.exception import UnauthorizedException
+from pkg.exception import FailException
 from pkg.security import check_password_hash, generate_password_hash
 from schema.account_schema import AccountUserLoginReq, AccountUserRegistrationReq
 from model.account import Account
@@ -23,7 +23,7 @@ def get_user_info(username: str, email: str) -> Account:
 def account_user_registration_service(req: AccountUserRegistrationReq) -> Account:
     """用户注册"""
     if get_user_info(req.username.data, req.email.data) is not None:
-        raise UnauthorizedException("用户名或邮箱已存在")
+        raise FailException("用户名或邮箱已存在")
 
     # 创建账户对象
     account = Account(
@@ -36,7 +36,7 @@ def account_user_registration_service(req: AccountUserRegistrationReq) -> Accoun
     return account
 
 # 用户登录
-def account_user_login_service(req: AccountUserLoginReq):
+def account_user_login_service(req: AccountUserLoginReq) -> Account:
     """
     用户登录服务
     从 PostgreSQL 数据库查询用户并验证密码
@@ -47,14 +47,9 @@ def account_user_login_service(req: AccountUserLoginReq):
     # 从数据库查询用户
     user = db.session.query(Account).filter(Account.username == username).first()
     if not user:
-        raise UnauthorizedException("用户不存在")
+        raise FailException("用户不存在")
     if not check_password_hash(user.password_hash, password):
-        raise UnauthorizedException("用户名或密码错误")
+        raise FailException("用户名或密码错误")
     
     # 登录成功，返回用户信息（不返回密码）
-    return {
-        "id": user.id,
-        "username": user.username,
-        "email": user.email,
-        "message": "登录成功"
-    }
+    return user
