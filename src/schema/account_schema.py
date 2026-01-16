@@ -13,7 +13,7 @@ from wtforms.validators import DataRequired, Length
 class AccountUserLoginReq(FlaskForm):
     username = StringField("username", validators=[
         DataRequired("用户名必填"),
-        Length(min=8, max=32, message="用户名8-32位")
+        Length(min=4, max=32, message="用户名8-32位")
     ])
     password = StringField("password", validators=[
         DataRequired("密码必填"),
