@@ -6,7 +6,7 @@
 @File    : account_service.py
 """
 from config.db_config import db
-from pkg.exception import FailException, NotFoundException
+from pkg.exception import FailException
 from pkg.security import check_password_hash, generate_password_hash
 from schema.account_schema import AccountUserLoginReq, AccountUserRegistrationReq
 from model.account import Account
@@ -57,5 +57,5 @@ def account_user_login_service(req: AccountUserLoginReq) -> Account:
 def get_account_info_by_id(user_id: str) -> Account:
     user = db.session.query(Account).filter(Account.id == user_id).first()
     if not user:
-        raise NotFoundException("用户不存在")
+        raise FailException("用户不存在")
     return user

@@ -30,10 +30,6 @@ class UnauthorizedException(CustomException):
     """未授权异常"""
     code = HttpCode.UNAUTHORIZED
 
-class NotFoundException(CustomException):
-    """未找到数据异常"""
-    code = HttpCode.NOT_FOUND
-
 class ForbiddenException(CustomException):
     """无权限异常"""
     code = HttpCode.FORBIDDEN
