@@ -8,6 +8,9 @@ dotenv.load_dotenv()
 
 app = Flask(__name__)
 
+# 初始化应用配置
+init_flask_app_config(app)
+
 # 初始化数据库
 init_db_config(app)
 
@@ -18,9 +21,6 @@ init_flask_router(app)
 
 # 初始化错误处理
 init_flask_error(app)
-
-# 初始化应用配置
-init_flask_app_config(app)
 
 
 if __name__ == '__main__':

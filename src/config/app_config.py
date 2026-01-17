@@ -11,6 +11,9 @@ from flask_cors import CORS
 
 
 def init_flask_app_config(app: Flask):
+    # 配置 JSON 响应不转义中文字符
+    app.config['JSON_AS_ASCII'] = False
+
     # 配置 SECRET_KEY（Flask-WTF 需要）
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
