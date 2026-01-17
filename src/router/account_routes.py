@@ -10,7 +10,7 @@ from flask import Blueprint
 from handler.account_handler import account_user_login_handler, account_user_registration_handler, account_user_ping_handler, account_user_get_info_handler
 
 """账号相关接口"""
-account_blueprint = Blueprint("api", __name__, url_prefix="")
+account_blueprint = Blueprint("account", __name__, url_prefix="")
 
 # 用户登录
 account_blueprint.add_url_rule("/api/account/login", methods=["POST"], view_func=account_user_login_handler)

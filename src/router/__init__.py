@@ -6,6 +6,8 @@
 @File    : __init__.py.py
 """
 from .account_routes import account_blueprint
+from .dataset_routes import dataset_blueprint
 __all__ = [
-    "account_blueprint"
+    "account_blueprint",
+    "dataset_blueprint"
 ]

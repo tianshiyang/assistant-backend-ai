@@ -7,13 +7,11 @@
 用户模型
 """
 import uuid
-from datetime import datetime
 
-from sqlalchemy import UniqueConstraint, UUID, Text, TIMESTAMP
+from sqlalchemy import UniqueConstraint, UUID, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from model.base_model import BaseModel
-from config.db_config import db
 
 class Account(BaseModel):
     __tablename__ = 'account'
