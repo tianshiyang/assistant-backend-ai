@@ -63,6 +63,22 @@ class BaseModel(db.Model):
         except Exception as e:
             db.session.rollback()
             raise e
+        
+    def update(self, **kwargs):
+        """更新模型字段"""
+        try:
+            for key, value in kwargs.items():
+                if hasattr(self, key):
+                    setattr(self, key, value)
+            
+            # 将对象添加到 session（如果还没有）
+            db.session.add(self)
+            db.session.commit()
+            
+            return self
+        except Exception as e:
+            db.session.rollback()
+            raise e
 
     def delete(self):
         """从数据库删除"""
