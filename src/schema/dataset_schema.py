@@ -9,6 +9,8 @@ from flask_wtf import FlaskForm
 from wtforms import StringField
 from wtforms.validators import DataRequired, Length
 
+from schema.base_schema import PaginationSchema
+
 
 class CreateDatasetSchema(FlaskForm):
     """创建知识库"""
@@ -45,3 +47,8 @@ class DeleteDatasetSchema(FlaskForm):
     dataset_id = StringField("dataset_id", validators=[
         DataRequired("知识库id必传")
     ])
+
+class GetAllDatasetSchema(PaginationSchema):
+    """获取全部知识库"""
+    dataset_id = StringField("dataset_id", validators=[])
+    name = StringField("name", validators=[])
