@@ -12,9 +12,10 @@ from router import account_blueprint, dataset_blueprint
 
 # 注册路由
 def init_flask_router(app: Flask):
-    app.register_blueprint(
-        # 账号模块
-        account_blueprint,
-        # 知识库模块
-        dataset_blueprint
-    )
+    for blue_print in [
+        account_blueprint, # 账号模块
+        dataset_blueprint, # 知识库模块
+    ]:
+        app.register_blueprint(
+            blue_print
+        )

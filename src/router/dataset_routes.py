@@ -15,11 +15,15 @@ dataset_blueprint = Blueprint("dataset", __name__, url_prefix="")
 
 # 创建知识库
 dataset_blueprint.add_url_rule("/api/dataset/create", methods=["POST"], view_func=create_dataset_handler)
+
 # 更新知识库
 dataset_blueprint.add_url_rule("/api/dataset/update", methods=["POST"], view_func=update_dataset_handler)
+
 # 删除知识库
 dataset_blueprint.add_url_rule("/api/dataset/delete", methods=["POST"], view_func=delete_dataset_handler)
+
 # 获取所有知识库
 dataset_blueprint.add_url_rule("api/dataset/getAllDataset", methods=["GET"], view_func=get_all_dataset_handler)
+
 # 通过id获取知识库详情
 dataset_blueprint.add_url_rule("/api/dataset/datasetDetail", methods=["GET"], view_func=get_dataset_detail)

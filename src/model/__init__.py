@@ -7,7 +7,10 @@
 """
 from .base_model import BaseModel
 from .account import Account
+from .dataset import Dataset
+
 __all__ = [
     "BaseModel",
-    "Account"
+    "Account",
+    "Dataset"
 ]
