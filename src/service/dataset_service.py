@@ -10,7 +10,7 @@ from uuid import UUID
 from config.db_config import db
 from model import Dataset
 from pkg.exception import FailException
-from schema.dataset_schema import CreateDatasetSchema, GetDataSetDetailSchema, UpdateDatasetSchema
+from schema.dataset_schema import CreateDatasetSchema, GetDataSetDetailSchema, UpdateDatasetSchema, DeleteDatasetSchema
 
 
 def create_dataset_service(req: CreateDatasetSchema, user_id: str) -> Dataset:
@@ -45,10 +45,17 @@ def update_dataset_service(req: UpdateDatasetSchema, user_id: str) -> Dataset:
     dataset = get_dataset_detail_by_id(dataset_id, user_id)
     if dataset is None:
         raise FailException("当前知识库不存在")
-    print(dataset.id, '书库哈法')
     dataset.update(
         name=req.name.data,
         description=req.description.data,
         icon=req.icon.data,
     )
+    return dataset
+
+def delete_dataset_service(req: DeleteDatasetSchema, user_id: str) -> Dataset:
+    dataset_id = req.dataset_id.data
+    dataset = get_dataset_detail_by_id(dataset_id, user_id)
+    if dataset is None:
+        raise FailException("当前知识库不存在")
+    dataset.delete()
     return dataset

@@ -39,3 +39,9 @@ class UpdateDatasetSchema(FlaskForm):
     ])
     icon = StringField("icon", validators=[])
     description = StringField("description", validators=[])
+
+class DeleteDatasetSchema(FlaskForm):
+    """删除指定知识库"""
+    dataset_id = StringField("dataset_id", validators=[
+        DataRequired("知识库id必传")
+    ])
