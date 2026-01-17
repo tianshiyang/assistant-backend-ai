@@ -30,11 +30,6 @@ class UnauthorizedException(CustomException):
     """未授权异常"""
     code = HttpCode.UNAUTHORIZED
 
-class ForbiddenException(CustomException):
-    """无权限异常"""
-    code = HttpCode.FORBIDDEN
-
-
 class ValidateErrorException(CustomException):
     """数据验证异常"""
     code = HttpCode.VALIDATE_ERROR

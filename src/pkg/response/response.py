@@ -33,7 +33,7 @@ def error_json(data: Any = None) -> Any:
 
 def unauthorized_json(data: Any = None) -> Any:
     """认证失败的数据相应"""
-    return json(Response(data=data, message="认证失败", code=HttpCode.UNAUTHORIZED))
+    return jsonify(Response(data=data, message="认证失败", code=HttpCode.UNAUTHORIZED)), 401
 
 def validate_error_json(errors: dict = None) -> Any:
     """数据验证错误"""

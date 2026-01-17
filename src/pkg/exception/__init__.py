@@ -5,10 +5,9 @@
 @Author  : tianshiyang
 @File    : __init__.py.py
 """
-from .exception import FailException, UnauthorizedException, ForbiddenException, ValidateErrorException
+from .exception import FailException, UnauthorizedException, ValidateErrorException
 __all__ = [
     "FailException",
     "UnauthorizedException",
-    "ForbiddenException",
     "ValidateErrorException",
 ]
