@@ -7,15 +7,11 @@
 """
 import uuid
 
-from sqlalchemy import UUID, Text, Enum
+from sqlalchemy import UUID, Text, VARCHAR
 from sqlalchemy.orm import Mapped, mapped_column
 
+from entities.dataset_entities import DatasetStatus
 from model import BaseModel
-
-class DatasetStatus(str, Enum):
-    # 知识库状态: parsing文件解析中 -> 不可选择此数据库，using -> 使用中
-    USING = "using" # 使用中
-    PARING = "paring" # 解析中
 
 class Dataset(BaseModel):
     __tablename__ = "dataset"
@@ -39,8 +35,8 @@ class Dataset(BaseModel):
         comment="知识库名称"
     )
 
-    status: Mapped[DatasetStatus] = mapped_column(
-        DatasetStatus,
+    status: Mapped[str] = mapped_column(
+        VARCHAR(10),
         nullable=False,
         default=DatasetStatus.USING,
         comment="知识库状态: parsing文件解析中 -> 不可选择此数据库，using -> 使用中"

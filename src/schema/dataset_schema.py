@@ -21,3 +21,8 @@ class CreateDatasetSchema(FlaskForm):
     description = StringField("description", validators=[
         DataRequired("知识库名称必填")
     ])
+
+class GetDataSetDetailSchema(FlaskForm):
+    dataset_id = StringField("dataset_id", validators=[
+        DataRequired("知识库id必传")
+    ])

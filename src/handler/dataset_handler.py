@@ -5,11 +5,12 @@
 @Author  : tianshiyang
 @File    : dataset_handler.py
 """
+from flask import request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from pkg.response import validate_error_json, success_message
-from schema.dataset_schema import CreateDatasetSchema
-from service.dataset_service import create_dataset_service
+from schema.dataset_schema import CreateDatasetSchema, GetDataSetDetailSchema
+from service.dataset_service import create_dataset_service, get_dataset_detail_service
 
 
 @jwt_required()
@@ -35,7 +36,16 @@ def get_all_dataset_handler():
     pass
 
 @jwt_required()
-def get_dataset_detail():
+def get_dataset_detail_handler():
     """获取知识库详情"""
-    # req = GetDataSetDetailSchema()
-    # pass
+    req = GetDataSetDetailSchema(formdata=request.args)
+    
+    if not req.validate():
+        return validate_error_json(req.errors)
+
+
+    user_id = get_jwt_identity()
+
+    dataset = get_dataset_detail_service(req, user_id)
+
+    return success_message(dataset.to_dict())

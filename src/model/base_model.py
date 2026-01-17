@@ -13,6 +13,7 @@ from sqlalchemy import TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column
 
 from config.db_config import db
+from utils import format_time
 
 
 class BaseModel(db.Model):
@@ -46,6 +47,11 @@ class BaseModel(db.Model):
             if isinstance(value, datetime):
                 value = value.isoformat()
             result[column.name] = value
+        # 格式化返回时间
+        if result['updated_at']:
+            result['updated_at'] = format_time(result['updated_at'])
+        if result['created_at']:
+            result['created_at'] = format_time(result['created_at'])
         return result
     
     def create(self):
