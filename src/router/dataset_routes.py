@@ -23,7 +23,7 @@ dataset_blueprint.add_url_rule("/api/dataset/update", methods=["POST"], view_fun
 dataset_blueprint.add_url_rule("/api/dataset/delete", methods=["POST"], view_func=delete_dataset_handler)
 
 # 获取所有知识库
-dataset_blueprint.add_url_rule("api/dataset/getDatasetList", methods=["GET"], view_func=get_dataset_list_handler)
+dataset_blueprint.add_url_rule("api/dataset/list", methods=["GET"], view_func=get_dataset_list_handler)
 
 # 通过id获取知识库详情
-dataset_blueprint.add_url_rule("/api/dataset/getDatasetDetail", methods=["GET"], view_func=get_dataset_detail_handler)
+dataset_blueprint.add_url_rule("/api/dataset/detail", methods=["GET"], view_func=get_dataset_detail_handler)
