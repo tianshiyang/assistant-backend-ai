@@ -7,7 +7,10 @@
 """
 import os
 
+import dotenv
 from langchain_community.embeddings import DashScopeEmbeddings
+
+dotenv.load_dotenv()
 
 embeddings = DashScopeEmbeddings(
     model="text-embedding-v3",
