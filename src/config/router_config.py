@@ -7,7 +7,7 @@
 """
 from flask import Flask
 
-from router import account_blueprint, dataset_blueprint
+from router import account_blueprint, dataset_blueprint, document_router
 
 
 # 注册路由
@@ -15,6 +15,7 @@ def init_flask_router(app: Flask):
     for blue_print in [
         account_blueprint, # 账号模块
         dataset_blueprint, # 知识库模块
+        document_router, # 知识库文档模块
     ]:
         app.register_blueprint(
             blue_print
