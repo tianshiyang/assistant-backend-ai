@@ -7,7 +7,7 @@ from config import (
     init_flask_app_config, 
     init_db_config, 
     init_flask_jwt_config,
-    celery_config
+    init_celery_config
 )
 
 # 先加载环境变量
@@ -24,7 +24,7 @@ init_db_config(app)
 init_flask_jwt_config(app)
 
 # 初始化 Celery（必须在路由初始化之前）
-celery = celery_config(app)
+celery = init_celery_config(app)
 
 # 初始化路由
 init_flask_router(app)

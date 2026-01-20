@@ -28,6 +28,14 @@ def init_flask_app_config(app: Flask):
     app.config['REDIS_DB'] = os.getenv("REDIS_DB")
     app.config['REDIS_USE_SSL'] = bool(os.getenv("REDIS_USE_SSL"))
 
+    app.config.from_mapping(
+        CELERY=dict(
+            broker_url=f"redis://:{os.getenv("REDIS_PASSWORD")}@{os.getenv("REDIS_HOST")}:{os.getenv("REDIS_PORT")}/0",
+            result_backend=f"redis://:{os.getenv("REDIS_PASSWORD")}@{ os.getenv("REDIS_HOST")}:{os.getenv("REDIS_PORT")}/1",
+            task_ignore_result=True,
+        ),
+    )
+
     # 跨域配置
     CORS(app, resources={
         r"/*": {

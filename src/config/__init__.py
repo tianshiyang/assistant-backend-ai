@@ -10,7 +10,7 @@ from .router_config import init_flask_router
 from .exception_config import init_flask_error
 from .db_config import init_db_config
 from .jwt_config import init_flask_jwt_config
-from .celery_config import celery_config
+from .celery_config import init_celery_config
 
 __all__ = [
     "init_flask_app_config",
@@ -18,5 +18,5 @@ __all__ = [
     "init_flask_error",
     "init_db_config",
     "init_flask_jwt_config",
-    "celery_config",
+    "init_celery_config",
 ]
