@@ -1,7 +1,14 @@
 from flask import Flask
 import dotenv
 
-from config import init_flask_router, init_flask_error, init_flask_app_config, init_db_config, init_flask_jwt_config
+from src.config import (
+    init_flask_router, 
+    init_flask_error, 
+    init_flask_app_config, 
+    init_db_config, 
+    init_flask_jwt_config,
+    celery_config
+)
 
 # 先加载环境变量
 dotenv.load_dotenv()
@@ -15,6 +22,9 @@ init_flask_app_config(app)
 init_db_config(app)
 
 init_flask_jwt_config(app)
+
+# 初始化 Celery（必须在路由初始化之前）
+celery = celery_config(app)
 
 # 初始化路由
 init_flask_router(app)
