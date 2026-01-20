@@ -5,10 +5,22 @@
 @Author  : tianshiyang
 @File    : document_handler.py
 """
-from pkg.response import success_message
-from service.milvus_database_service import add_documents
+from flask_jwt_extended import jwt_required, get_jwt_identity
+
+from pkg.response import success_message, validate_error_json
+from schema.document_schema import DocumentUploadToMilvusSchema
+from service.document_service import document_upload_service
 
 
-def document_upload_to_milvus_handler():
-    add_documents()
+@jwt_required()
+def document_upload_handler():
+    """上传文件到milvus"""
+    req = DocumentUploadToMilvusSchema()
+
+    if not req.validate():
+        return validate_error_json(req.errors)
+
+    user_id = get_jwt_identity()
+
+    document_upload_service(req, user_id)
     return success_message("插入成功")

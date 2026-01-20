@@ -7,8 +7,8 @@
 """
 from flask import Blueprint
 
-from handler.document_handler import document_upload_to_milvus_handler
+from handler.document_handler import document_upload_handler
 
 document_router = Blueprint('document_router', __name__, url_prefix="")
 
-document_router.add_url_rule("/api/document/upload", methods=["POST"], view_func=document_upload_to_milvus_handler)
+document_router.add_url_rule("/api/document/upload", methods=["POST"], view_func=document_upload_handler)

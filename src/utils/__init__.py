@@ -7,10 +7,11 @@
 """
 from .time_format import format_time
 from .data_format import transform_pagination_data
-from .embeddings import embeddings
+from .embeddings import embeddings, count_tokens
 
 __all__ = [
     "time_format",
     "transform_pagination_data",
-    "embeddings"
+    "embeddings",
+    "count_tokens"
 ]
