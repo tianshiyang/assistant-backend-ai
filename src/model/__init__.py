@@ -8,9 +8,11 @@
 from .base_model import BaseModel
 from .account import Account
 from .dataset import Dataset
+from .document import Document
 
 __all__ = [
     "BaseModel",
     "Account",
-    "Dataset"
+    "Dataset",
+    "Document"
 ]
