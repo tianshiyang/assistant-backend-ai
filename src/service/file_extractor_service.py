@@ -44,5 +44,6 @@ def get_documents_chunks(documents: List[Document]) -> List[Document]:
 
 if __name__ == "__main__":
     document_chunks = load_file_from_url("https://assistant-ai-1309470436.cos.ap-beijing.myqcloud.com/羞羞的铁拳.docx")
-    for document in document_chunks:
-        print(document.page_content)
+    print(document_chunks[0])
+    # for document in document_chunks:
+    #     print(document.page_content)
