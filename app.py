@@ -1,7 +1,7 @@
 from flask import Flask
 import dotenv
 
-from src.config import (
+from config import (
     init_flask_router, 
     init_flask_error, 
     init_flask_app_config, 
