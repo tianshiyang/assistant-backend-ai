@@ -29,6 +29,7 @@ init_db_config(app)
 # 初始化redis配置
 init_redis_config(app)
 
+# 初始化jwt配置
 init_flask_jwt_config(app)
 
 # 初始化 Celery（必须在路由初始化之前）

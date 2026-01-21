@@ -11,7 +11,11 @@ from datetime import datetime
 from entities.document_entities import DocumentStatus
 from schema.document_schema import DocumentUploadToMilvusSchema
 from model import Document
+from utils import get_module_logger
 from task import add_document_to_milvus_task
+
+# 使用统一的日志记录器
+logger = get_module_logger(__name__)
 
 
 def document_upload_service(req: DocumentUploadToMilvusSchema, user_id: str) -> Document:

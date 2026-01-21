@@ -1,11 +1,19 @@
 import os
-
 from celery import Celery, Task
+from celery.signals import setup_logging
 from flask import Flask
-# Celery worker 启动时自动初始化日志
 
 from .log_config import init_log_config
-init_log_config()
+
+
+@setup_logging.connect
+def config_celery_logging(**kwargs):
+    """
+    Celery worker 启动时自动配置日志
+    这个函数会在 Celery worker 启动时被调用
+    """
+    init_log_config()
+
 
 def init_celery_config(app: Flask) -> Celery:
     # Celery 配置

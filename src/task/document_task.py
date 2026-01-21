@@ -29,7 +29,8 @@ def add_document_to_milvus_task(user_id: str):
         # 模拟长时间任务（测试时可以改小，生产环境根据实际需求调整）
         # 4000 秒 = 约 66 分钟，用于测试时可以改为较小的值，如 10 秒
         time.sleep(10)
-        
+
+
         logger.info(f"任务等待完成，继续执行后续逻辑，user_id={user_id}")
         logger.error(f"任务执行成功，user_id={user_id}")
         logger.error(f"定时任务celery，获取的user_id是{user_id}")
