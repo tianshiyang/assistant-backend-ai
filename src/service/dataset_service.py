@@ -82,5 +82,7 @@ def get_dataset_list_service(req: GetAllDatasetSchema, user_id: str) -> Paginati
 def update_dataset_status(dataset_id, status: DatasetStatus, user_id: str) -> Dataset:
     """更新知识库状态"""
     dataset = get_dataset_detail_by_id(dataset_id, user_id)
-    dataset.update(status=status.value)
+    dataset.update(
+        status=status.value,
+    )
     return dataset

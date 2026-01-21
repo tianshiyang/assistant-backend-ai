@@ -16,15 +16,19 @@ from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_unstructured import UnstructuredLoader
 
+from utils import count_tokens
 
-def load_file_from_url(url) -> List[Document]:
-    """从URL中加载文件"""
+
+def load_file_from_url(url) -> tuple[List[Document], int, int]:
+    """从URL中加载文件
+        返回值： langchain的Document列表，token数量，文档字数
+    """
     request = requests.get(url)
     with tempfile.TemporaryDirectory() as temp_dir:
         path = os.path.join(temp_dir, os.path.basename(url))
         with open(path, "wb") as f:
             f.write(request.content)
-        return get_document(path)
+        return get_document(path), count_tokens(request.content), len(request.content)
 
 def get_document(file_path) -> List[Document]:
    """获取文档"""

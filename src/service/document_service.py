@@ -43,6 +43,7 @@ def document_upload_service(req: DocumentUploadToMilvusSchema, user_id: str) -> 
         status=DatasetStatus.PARING
     )
     # 开启异步任务解析文件
+    print(str(document.id), oss_url, dataset_id, user_id)
     add_document_to_milvus_task.delay(oss_url=oss_url, dataset_id=dataset_id, user_id=user_id, document_id=str(document.id))
     return document
 
@@ -53,15 +54,17 @@ def get_document_detail(user_id: str, document_id: str) -> Document:
         raise FailException("知识库不存在")
     return dataset
 
-def update_document_status(document_id: str, user_id: str, status: DocumentStatus):
+def update_document_status(document_id: str, user_id: str, status: DocumentStatus, **kwargs):
     """更新文档状态"""
     document = get_document_detail(user_id=user_id, document_id=document_id)
+    logger.error(f"kwarg: {kwargs}, 这个是kwarg")
     document.update(
-        status=status.value
+        status=status.value,
+        **kwargs
     )
-    # 更新知识库状态
+    # 更新知识库状态 -> 不管成功或失败都让知识库完成
     update_dataset_status(
         dataset_id=str(document.dataset_id),
         user_id=user_id,
-        status=DatasetStatus.USING
+        status=DatasetStatus.USING,
     )
