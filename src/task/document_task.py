@@ -9,6 +9,7 @@ import time
 
 from celery import shared_task
 
+from entities.document_entities import DocumentStatus
 from utils import get_module_logger
 
 # 获取日志记录器
@@ -16,30 +17,44 @@ logger = get_module_logger(__name__)
 
 
 @shared_task
-def add_document_to_milvus_task(user_id: str):
+def add_document_to_milvus_task(oss_url: str, dataset_id: str, document_id: str, user_id: str):
     """
     将文档添加到 Milvus 的异步任务
     
     Args:
+        oss_url: 文件oss地址
         user_id: 用户ID
+        document_id: 文档id
+        dataset_id: 知识库id
     """
-    logger.info(f"开始执行任务: add_document_to_milvus_task, user_id={user_id}")
-    
+    from service.file_extractor_service import load_file_from_url
+    from service.milvus_database_service import add_documents
+    from service.document_service import update_document_status
+    document_chunks = load_file_from_url(oss_url)
+    logger.info(f"开始准备插入文档")
     try:
-        # 模拟长时间任务（测试时可以改小，生产环境根据实际需求调整）
-        # 4000 秒 = 约 66 分钟，用于测试时可以改为较小的值，如 10 秒
-        time.sleep(10)
-
-
-        logger.info(f"任务等待完成，继续执行后续逻辑，user_id={user_id}")
-        logger.error(f"任务执行成功，user_id={user_id}")
-        logger.error(f"定时任务celery，获取的user_id是{user_id}")
-        
-        # TODO: 在这里添加实际的业务逻辑
-        # 例如：从 OSS 下载文件，解析文档，添加到 Milvus 等
-        
-        logger.info(f"任务完成，返回结果，user_id={user_id}")
-        return {"status": "success", "user_id": user_id}
+        """添加文档到milvus中"""
+        add_documents(
+            documents=document_chunks,
+            user_id=user_id,
+            dataset_id=dataset_id,
+            source=oss_url
+        )
+        """更新文档状态为解析成功"""
+        update_document_status(
+            user_id=user_id,
+            document_id=document_id,
+            status=DocumentStatus.COMPLETED
+        )
+        logger.info(f"插入milvus成功")
     except Exception as e:
-        logger.error(f"任务执行失败，user_id={user_id}, 错误: {e}", exc_info=True)
-        raise
+        """"更新文档状态为失败"""
+        logger.error(f"更新文档失败：{e}")
+        update_document_status(
+            user_id=user_id,
+            document_id=document_id,
+            status=DocumentStatus.ERROR
+        )
+
+
+

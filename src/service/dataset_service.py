@@ -9,6 +9,7 @@ from typing import List
 
 from config.db_config import db
 from entities.base_entity import Pagination
+from entities.dataset_entities import DatasetStatus
 from model import Dataset
 from pkg.exception import FailException
 from schema.dataset_schema import CreateDatasetSchema, GetDataSetDetailSchema, UpdateDatasetSchema, DeleteDatasetSchema, \
@@ -77,3 +78,9 @@ def get_dataset_list_service(req: GetAllDatasetSchema, user_id: str) -> Paginati
         error_out=False
     )
     return pagination
+
+def update_dataset_status(dataset_id, status: DatasetStatus, user_id: str) -> Dataset:
+    """更新知识库状态"""
+    dataset = get_dataset_detail_by_id(dataset_id, user_id)
+    dataset.update(status=status.value)
+    return dataset
