@@ -37,6 +37,8 @@ celerybeat.pid
 .coverage
 htmlcov/
 
+scripts
+
 # Temporary files
 *.tmp
 *.bak
