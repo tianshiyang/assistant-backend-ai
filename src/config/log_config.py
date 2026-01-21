@@ -63,6 +63,12 @@ def log_config_init(app: Flask = None):
     logging.getLogger('werkzeug').setLevel(logging.WARNING)
     logging.getLogger('urllib3').setLevel(logging.WARNING)
     logging.getLogger('requests').setLevel(logging.WARNING)
+    
+    # 过滤 Celery 内部的 DEBUG 日志
+    logging.getLogger('celery').setLevel(logging.INFO)  # Celery 主日志
+    logging.getLogger('celery.utils.functional').setLevel(logging.WARNING)  # 过滤 functional 模块的 DEBUG
+    logging.getLogger('celery.worker').setLevel(logging.INFO)  # Worker 日志
+    logging.getLogger('celery.task').setLevel(logging.INFO)  # Task 日志
 
 
 def init_log_config(app: Flask = None, force: bool = False):

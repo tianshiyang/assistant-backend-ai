@@ -11,7 +11,7 @@ from celery import shared_task
 
 from utils import get_module_logger
 
-# 获取日志记录器（在模块级别初始化，避免每次调用都创建）
+# 获取日志记录器
 logger = get_module_logger(__name__)
 
 
