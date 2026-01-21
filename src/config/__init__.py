@@ -11,6 +11,7 @@ from .exception_config import init_flask_error
 from .db_config import init_db_config
 from .jwt_config import init_flask_jwt_config
 from .celery_config import init_celery_config
+from .redis_config import init_redis_config
 
 __all__ = [
     "init_flask_app_config",
@@ -19,4 +20,5 @@ __all__ = [
     "init_db_config",
     "init_flask_jwt_config",
     "init_celery_config",
+    "init_redis_config"
 ]

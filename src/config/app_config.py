@@ -20,22 +20,6 @@ def init_flask_app_config(app: Flask):
     # 禁用 CSRF（API 项目通常不需要 CSRF 保护，使用 token 认证）
     app.config['WTF_CSRF_ENABLED'] = False
 
-    # Redis配置
-    app.config['REDIS_HOST'] = os.getenv("REDIS_HOST")
-    app.config['REDIS_PORT'] = os.getenv("REDIS_PORT")
-    app.config['REDIS_USERNAME'] = os.getenv("REDIS_USERNAME")
-    app.config['REDIS_PASSWORD'] = os.getenv("REDIS_PASSWORD")
-    app.config['REDIS_DB'] = os.getenv("REDIS_DB")
-    app.config['REDIS_USE_SSL'] = bool(os.getenv("REDIS_USE_SSL"))
-
-    app.config.from_mapping(
-        CELERY=dict(
-            broker_url=f"redis://:{os.getenv("REDIS_PASSWORD")}@{os.getenv("REDIS_HOST")}:{os.getenv("REDIS_PORT")}/0",
-            result_backend=f"redis://:{os.getenv("REDIS_PASSWORD")}@{ os.getenv("REDIS_HOST")}:{os.getenv("REDIS_PORT")}/1",
-            task_ignore_result=True,
-        ),
-    )
-
     # 跨域配置
     CORS(app, resources={
         r"/*": {

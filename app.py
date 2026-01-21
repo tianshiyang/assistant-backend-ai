@@ -7,7 +7,8 @@ from config import (
     init_flask_app_config, 
     init_db_config, 
     init_flask_jwt_config,
-    init_celery_config
+    init_celery_config,
+    init_redis_config
 )
 
 # 先加载环境变量
@@ -20,6 +21,9 @@ init_flask_app_config(app)
 
 # 初始化数据库
 init_db_config(app)
+
+# 初始化redis配置
+init_redis_config(app)
 
 init_flask_jwt_config(app)
 
