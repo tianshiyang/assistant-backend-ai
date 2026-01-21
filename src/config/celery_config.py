@@ -35,6 +35,14 @@ def init_celery_config(app: Flask) -> Celery:
             accept_content=["json"],
             timezone="UTC",
             enable_utc=True,
+            # 定时任务配置（Celery Beat）
+            beat_schedule={
+                'cleanup-old-logs': {
+                    'task': 'src.task.cleanup_log_task.cleanup_old_logs_task',
+                    'schedule': 86400.0,  # 每24小时执行一次（秒）
+                    'options': {'expires': 3600}  # 任务过期时间1小时
+                },
+            },
         ),
     )
 
