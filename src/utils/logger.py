@@ -7,7 +7,7 @@
 import logging
 from typing import Optional
 
-from ..config.log_config import get_logger
+from config.log_config import get_logger
 
 
 def get_module_logger(name: Optional[str] = None) -> logging.Logger:

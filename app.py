@@ -8,13 +8,17 @@ from config import (
     init_db_config, 
     init_flask_jwt_config,
     init_celery_config,
-    init_redis_config
+    init_redis_config,
+    init_log_config
 )
 
 # 先加载环境变量
 dotenv.load_dotenv()
 
 app = Flask(__name__)
+
+# 初始化日志配置
+init_log_config(app)
 
 # 初始化应用配置
 init_flask_app_config(app)

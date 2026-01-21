@@ -1,102 +1,91 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-日志配置模块
+日志配置模块 - 简化版
 """
 import os
 import logging
 import logging.handlers
-from datetime import datetime
 from flask import Flask
 
+# 标记是否已初始化
+_initialized = False
 
-def init_log_config(app: Flask):
+
+def init_log_config(app: Flask = None):
     """
-    初始化日志配置
+    初始化日志配置（简单版本）
     
-    环境变量:
-    - LOG_LEVEL: 日志级别 (DEBUG, INFO, WARNING, ERROR, CRITICAL)，默认 INFO
-    - LOG_DIR: 日志文件目录，默认 logs
-    - LOG_MAX_BYTES: 单个日志文件最大字节数，默认 10MB
-    - LOG_BACKUP_COUNT: 保留的日志文件数量，默认 10
+    环境变量（可选）:
+    - LOG_LEVEL: 日志级别，默认 INFO
+    - LOG_DIR: 日志目录，默认 logs
     """
-    # 获取日志配置
+    global _initialized
+    
+    # 避免重复初始化
+    if _initialized:
+        return
+    
+    # 获取配置
     log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
     log_dir = os.getenv('LOG_DIR', 'logs')
-    log_max_bytes = int(os.getenv('LOG_MAX_BYTES', '10485760'))  # 10MB
-    log_backup_count = int(os.getenv('LOG_BACKUP_COUNT', '10'))
     
     # 创建日志目录
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
+    os.makedirs(log_dir, exist_ok=True)
     
-    # 配置日志格式
+    # 日志格式
     log_format = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )
     
-    # 获取根日志记录器
+    # 配置根日志记录器
     root_logger = logging.getLogger()
-    root_logger.setLevel(getattr(logging, log_level, logging.INFO))
+    root_logger.setLevel(logging.DEBUG)
+    root_logger.handlers.clear()  # 清除已有处理器
     
-    # 清除已有的处理器
-    root_logger.handlers.clear()
+    # 控制台输出
+    console = logging.StreamHandler()
+    console.setLevel(getattr(logging, log_level, logging.INFO))
+    console.setFormatter(log_format)
+    root_logger.addHandler(console)
     
-    # 控制台处理器（输出到终端）
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(getattr(logging, log_level, logging.INFO))
-    console_handler.setFormatter(log_format)
-    root_logger.addHandler(console_handler)
-    
-    # 文件处理器 - 所有日志
-    all_log_file = os.path.join(log_dir, 'app.log')
+    # 文件输出（所有日志）
+    log_file = os.path.join(log_dir, 'app.log')
     file_handler = logging.handlers.RotatingFileHandler(
-        all_log_file,
-        maxBytes=log_max_bytes,
-        backupCount=log_backup_count,
+        log_file,
+        maxBytes=10 * 1024 * 1024,  # 10MB
+        backupCount=10,
         encoding='utf-8'
     )
-    file_handler.setLevel(logging.DEBUG)  # 文件记录所有级别的日志
+    file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(log_format)
     root_logger.addHandler(file_handler)
     
-    # 错误日志文件处理器 - 只记录 ERROR 及以上级别
-    error_log_file = os.path.join(log_dir, 'error.log')
-    error_handler = logging.handlers.RotatingFileHandler(
-        error_log_file,
-        maxBytes=log_max_bytes,
-        backupCount=log_backup_count,
-        encoding='utf-8'
-    )
-    error_handler.setLevel(logging.ERROR)
-    error_handler.setFormatter(log_format)
-    root_logger.addHandler(error_handler)
+    # Flask 日志
+    if app:
+        app.logger.setLevel(getattr(logging, log_level, logging.INFO))
     
-    # 配置 Flask 日志
-    app.logger.setLevel(getattr(logging, log_level, logging.INFO))
+    # 减少第三方库日志噪音
+    logging.getLogger('werkzeug').setLevel(logging.WARNING)
+    logging.getLogger('urllib3').setLevel(logging.WARNING)
     
-    # 配置第三方库的日志级别
-    logging.getLogger('werkzeug').setLevel(logging.WARNING)  # Flask 内部日志
-    logging.getLogger('urllib3').setLevel(logging.WARNING)  # HTTP 库日志
-    logging.getLogger('requests').setLevel(logging.WARNING)  # Requests 库日志
-    
-    # 记录启动信息
-    app.logger.info('=' * 60)
-    app.logger.info(f'应用启动 - {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
-    app.logger.info(f'日志级别: {log_level}')
-    app.logger.info(f'日志目录: {log_dir}')
-    app.logger.info('=' * 60)
+    _initialized = True
 
 
 def get_logger(name: str) -> logging.Logger:
     """
-    获取指定名称的日志记录器
+    获取日志记录器（自动初始化）
     
     Args:
-        name: 日志记录器名称，通常是模块名 __name__
+        name: 模块名，通常用 __name__
     
     Returns:
-        logging.Logger: 日志记录器实例
+        logging.Logger: 日志记录器
     """
-    return logging.getLogger(name)
+    if not _initialized:
+        init_log_config()
+    
+    logger = logging.getLogger(name)
+    logger.propagate = True  # 传播到根日志记录器
+    return logger

@@ -8,10 +8,12 @@
 from .time_format import format_time
 from .data_format import transform_pagination_data
 from .embeddings import embeddings, count_tokens
+from .logger import get_module_logger
 
 __all__ = [
     "time_format",
     "transform_pagination_data",
     "embeddings",
-    "count_tokens"
+    "count_tokens",
+    "get_module_logger"
 ]

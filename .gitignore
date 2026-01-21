@@ -8,22 +8,12 @@ __pycache__/
 dist/
 build/
 
-# Virtual Environment
-venv/
-env/
-ENV/
-.venv/
-
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-
-# Environment variables
-.env
-.env.local
 
 # Logs
 logs/
