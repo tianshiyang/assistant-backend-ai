@@ -98,3 +98,11 @@ def document_delete_service(req: DocumentDeleteSchema, user_id: str) -> Document
         document_id=req.document_id.data
     )
     return document
+
+
+def delete_all_document_by_dataset_id(dataset_id: str, user_id: str):
+    """删除知识库id为dataset_id的所有文档"""
+    db.session.query(Document).filter(
+        Document.dataset_id == dataset_id,
+        Document.user_id == user_id
+    ).delete()
