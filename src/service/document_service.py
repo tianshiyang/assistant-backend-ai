@@ -13,7 +13,7 @@ from entities.base_entity import Pagination
 from entities.dataset_entities import DatasetStatus
 from entities.document_entities import DocumentStatus
 from pkg.exception import FailException
-from schema.document_schema import DocumentUploadToMilvusSchema, DocumentGetAllListSchema
+from schema.document_schema import DocumentUploadToMilvusSchema, DocumentGetAllListSchema, DocumentDeleteSchema
 from model import Document
 from service.dataset_service import update_dataset_status
 from utils import get_module_logger
@@ -86,3 +86,8 @@ def document_get_all_list_service(req: DocumentGetAllListSchema, user_id: str) -
     )
     return pagination
 
+def document_delete_service(req: DocumentDeleteSchema, user_id: str) -> Document:
+    """删除文档，异步删除milvus中的数据"""
+    document = get_document_detail(user_id=user_id, document_id=req.document_id.data)
+    document.delete()
+    return document

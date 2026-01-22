@@ -28,5 +28,9 @@ class DocumentGetAllListSchema(PaginationSchema):
         DataRequired("知识库id必传"),
     ])
     name = StringField("name", validators=[
+    ])
 
+class DocumentDeleteSchema(FlaskForm):
+    document_id = StringField("document_id", validators=[
+        DataRequired("文档id必传")
     ])
