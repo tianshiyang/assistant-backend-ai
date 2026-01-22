@@ -52,11 +52,11 @@ def init_celery_config(app: Flask) -> Celery:
                 return self.run(*args, **kwargs)
 
     celery_app = Celery(app.name, task_cls=FlaskTask)
+    celery_app.config_from_object(app.config["CELERY"])
+    celery_app.set_default()  # 设置为默认实例，这样 @shared_task 才能正确绑定
     celery_app.autodiscover_tasks(
         ["src.task"],
         force=True
     )
-    celery_app.config_from_object(app.config["CELERY"])
-    celery_app.set_default()
     app.extensions["celery"] = celery_app
     return celery_app
