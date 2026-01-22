@@ -9,10 +9,11 @@ import os
 from datetime import datetime
 
 from config.db_config import db
+from entities.base_entity import Pagination
 from entities.dataset_entities import DatasetStatus
 from entities.document_entities import DocumentStatus
 from pkg.exception import FailException
-from schema.document_schema import DocumentUploadToMilvusSchema
+from schema.document_schema import DocumentUploadToMilvusSchema, DocumentGetAllListSchema
 from model import Document
 from service.dataset_service import update_dataset_status
 from utils import get_module_logger
@@ -68,3 +69,16 @@ def update_document_status(document_id: str, user_id: str, status: DocumentStatu
         user_id=user_id,
         status=DatasetStatus.USING,
     )
+
+def document_get_all_list_service(req: DocumentGetAllListSchema, user_id: str) -> Pagination[Document]:
+    """获取当前知识库下所有文档"""
+    dataset_id = req.dataset_id.data
+    filters = [Document.user_id == user_id, Document.dataset_id == dataset_id]
+
+    pagination = db.session.query(Document).filter(*filters).order_by(Document.created_at.desc()).paginate(
+        page=int(req.page_no.data),
+        per_page=int(req.page_size.data),
+        error_out=False
+    )
+    return pagination
+

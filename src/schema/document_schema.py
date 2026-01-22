@@ -9,6 +9,8 @@ from flask_wtf import FlaskForm
 from wtforms import StringField
 from wtforms.validators import DataRequired, URL
 
+from schema.base_schema import PaginationSchema
+
 
 class DocumentUploadToMilvusSchema(FlaskForm):
     dataset_id = StringField("dataset_id", validators=[
@@ -18,4 +20,13 @@ class DocumentUploadToMilvusSchema(FlaskForm):
     oss_url = StringField("oss_url", validators=[
         URL(message="格式必须是url格式"),
         DataRequired("oss链接必传")
+    ])
+
+
+class DocumentGetAllListSchema(PaginationSchema):
+    dataset_id = StringField("dataset_id", validators=[
+        DataRequired("知识库id必传"),
+    ])
+    dataset_name = StringField("name", validators=[
+
     ])
