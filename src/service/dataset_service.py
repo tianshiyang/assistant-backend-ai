@@ -5,8 +5,7 @@
 @Author  : tianshiyang
 @File    : dataset_service.py
 """
-from typing import List
-
+from task import delete_dataset_to_milvus_documents_task
 from config.db_config import db
 from entities.base_entity import Pagination
 from entities.dataset_entities import DatasetStatus
@@ -64,6 +63,7 @@ def delete_dataset_service(req: DeleteDatasetSchema, user_id: str) -> Dataset:
     if dataset is None:
         raise FailException("当前知识库不存在")
     dataset.delete()
+    delete_dataset_to_milvus_documents_task.delay(dataset_id)
     return dataset
 
 def get_dataset_list_service(req: GetAllDatasetSchema, user_id: str) -> Pagination[Dataset]:
