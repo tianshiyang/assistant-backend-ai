@@ -7,7 +7,7 @@
 """
 from flask import Blueprint
 
-from handler.document_handler import document_upload_handler, document_get_all_list_handler
+from handler.document_handler import document_upload_handler, document_get_all_list_handler, document_delete_handler
 
 document_router = Blueprint('document_router', __name__, url_prefix="")
 

@@ -17,7 +17,7 @@ from schema.document_schema import DocumentUploadToMilvusSchema, DocumentGetAllL
 from model import Document
 from service.dataset_service import update_dataset_status
 from utils import get_module_logger
-from task import add_document_to_milvus_task
+from task import add_document_to_milvus_task, delete_document_to_milvus_task
 
 # 使用统一的日志记录器
 logger = get_module_logger(__name__)
@@ -88,6 +88,13 @@ def document_get_all_list_service(req: DocumentGetAllListSchema, user_id: str) -
 
 def document_delete_service(req: DocumentDeleteSchema, user_id: str) -> Document:
     """删除文档，异步删除milvus中的数据"""
-    document = get_document_detail(user_id=user_id, document_id=req.document_id.data)
+    document = get_document_detail(
+        user_id=user_id,
+        document_id=req.document_id.data
+    )
     document.delete()
+    delete_document_to_milvus_task.delay(
+        user_id=user_id,
+        document_id=req.document_id.data
+    )
     return document

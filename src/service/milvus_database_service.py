@@ -14,13 +14,14 @@ from langchain_milvus import Milvus, BM25BuiltInFunction
 
 from utils import embeddings
 
-def add_documents(documents: List[Document], user_id: str, dataset_id: str, source: str):
+def add_documents(documents: List[Document], user_id: str, document_id: str, dataset_id: str, source: str):
     """添加文档"""
     # 为每个文档添加元数据
     for document in documents:
         document.metadata['user_id'] = user_id
         document.metadata['dataset_id'] = dataset_id
         document.metadata['source'] = source
+        document.metadata['document_id'] = document_id
     
     # 生成唯一 ID
     ids = [str(uuid.uuid4()) for _ in documents]
@@ -31,6 +32,17 @@ def add_documents(documents: List[Document], user_id: str, dataset_id: str, sour
         ids=ids
     )
 
+def delete_documents(user_id: str, document_id = None, dataset_id: str = None):
+    """删除文档"""
+    vector_store = get_milvus_client()
+    expr = ""
+    if dataset_id:
+        expr = f"user_id == '{user_id}' AND dataset_id == '{dataset_id}'"
+    if document_id:
+        expr = f"user_id == '{user_id}' AND document_id == '{document_id}'"
+    vector_store.delete(
+        expr=expr
+    )
 
 def get_milvus_client(collection_name: str = "assistant_ai_dataset_documents"):
     """获取 Milvus 数据库客户端"""
@@ -165,26 +177,27 @@ def get_retriever_with_scores(
     return docs_with_scores
 
 if __name__ == "__main__":
-    cur_user_id = "749d17ca-4227-4127-b94a-12ec8ff451dd"
-    cur_dataset_id = "2e949e61-4e52-4aeb-a97c-8aa77dea0f0f"
-    query = "电影《羞羞的铁拳》什么时候上映的"
-    
-    # 方式1: 使用带分数的检索（推荐，可以查看相关性分数）
-    results_with_scores = get_retriever_with_scores(
-        query=query,
-        k=20,  # 获取更多候选结果
-        expr=f'user_id == "{cur_user_id}"',
-        dense_weight=0.7,  # 语义相似度权重（对于这类问题可以调高）
-        sparse_weight=0.3,  # 关键词匹配权重
-        final_k=5,  # 最终返回前5个最相关的结果
-        min_score=0.3,  # 过滤掉分数低于0.3的结果
-    )
-    
-    print(f"找到 {len(results_with_scores)} 个相关结果:\n")
-    for i, (doc, score) in enumerate(results_with_scores, 1):
-        print(f"[{i}] 分数: {score:.4f}")
-        print(f"内容: {doc.page_content[:100]}...")
-        print(f"元数据: {doc.metadata}\n")
+    delete_documents(user_id="749d17ca-4227-4127-b94a-12ec8ff451dd", dataset_id="ce949e61-4e52-4aeb-a97c-8aa77dea0f0f")
+    # cur_user_id = "749d17ca-4227-4127-b94a-12ec8ff451dd"
+    # cur_dataset_id = "2e949e61-4e52-4aeb-a97c-8aa77dea0f0f"
+    # query = "电影《羞羞的铁拳》什么时候上映的"
+    #
+    # # 方式1: 使用带分数的检索（推荐，可以查看相关性分数）
+    # results_with_scores = get_retriever_with_scores(
+    #     query=query,
+    #     k=20,  # 获取更多候选结果
+    #     expr=f'user_id == "{cur_user_id}"',
+    #     dense_weight=0.7,  # 语义相似度权重（对于这类问题可以调高）
+    #     sparse_weight=0.3,  # 关键词匹配权重
+    #     final_k=5,  # 最终返回前5个最相关的结果
+    #     min_score=0.3,  # 过滤掉分数低于0.3的结果
+    # )
+    #
+    # print(f"找到 {len(results_with_scores)} 个相关结果:\n")
+    # for i, (doc, score) in enumerate(results_with_scores, 1):
+    #     print(f"[{i}] 分数: {score:.4f}")
+    #     print(f"内容: {doc.page_content[:100]}...")
+    #     print(f"元数据: {doc.metadata}\n")
     
     # # 方式2: 使用普通检索器
     # print("\n=== 方式2: 普通检索器 ===")

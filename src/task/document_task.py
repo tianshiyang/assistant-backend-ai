@@ -38,6 +38,7 @@ def add_document_to_milvus_task(oss_url: str, dataset_id: str, document_id: str,
         add_documents(
             documents=document_chunks,
             user_id=user_id,
+            document_id=document_id,
             dataset_id=dataset_id,
             source=oss_url
         )
@@ -60,6 +61,21 @@ def add_document_to_milvus_task(oss_url: str, dataset_id: str, document_id: str,
             status=DocumentStatus.ERROR,
             error=str(e),
         )
+
+@shared_task
+def delete_document_to_milvus_task(user_id: str, document_id: str):
+    """
+    异步删除Milvus中的文档
+    :param user_id: 用户id
+    :param document_id: 文档id
+    :return:
+    """
+    from service.milvus_database_service import delete_documents
+    try:
+        logger.info("==== 异步删除文档开始 ====")
+        delete_documents(user_id=user_id, document_id=document_id)
+    except Exception as e:
+        logger.error(f"异步删除Milvus中的文档失败, 失败原因：{e}")
 
 
 
