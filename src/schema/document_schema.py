@@ -27,6 +27,6 @@ class DocumentGetAllListSchema(PaginationSchema):
     dataset_id = StringField("dataset_id", validators=[
         DataRequired("知识库id必传"),
     ])
-    dataset_name = StringField("name", validators=[
+    name = StringField("name", validators=[
 
     ])

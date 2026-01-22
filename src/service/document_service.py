@@ -75,6 +75,10 @@ def document_get_all_list_service(req: DocumentGetAllListSchema, user_id: str) -
     dataset_id = req.dataset_id.data
     filters = [Document.user_id == user_id, Document.dataset_id == dataset_id]
 
+    name = req.name.data
+    if name is not None:
+        filters.append(Document.name.ilike(f"%{name}%"))
+
     pagination = db.session.query(Document).filter(*filters).order_by(Document.created_at.desc()).paginate(
         page=int(req.page_no.data),
         per_page=int(req.page_size.data),
