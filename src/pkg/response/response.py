@@ -5,10 +5,13 @@
 @Author  : tianshiyang
 @File    : response.py
 """
-from dataclasses import dataclass, field
+import json as json_module
+from dataclasses import dataclass, field, asdict
 from typing import Any
+from enum import Enum
+import uuid
 
-from flask import jsonify
+from flask import Response as FlaskResponse
 
 from pkg.response.http_code import HttpCode
 
@@ -19,9 +22,37 @@ class Response:
     message: str = ""
     data: Any = field(default_factory=dict)
 
+
+class JSONEncoder(json_module.JSONEncoder):
+    """自定义 JSON 编码器，处理枚举、UUID 和其他特殊类型"""
+    def default(self, obj):
+        if isinstance(obj, Enum):
+            return obj.value
+        if isinstance(obj, uuid.UUID):
+            return str(obj)
+        return super().default(obj)
+
+
 def json(data: Any = None) -> Any:
     """基础接口响应"""
-    return jsonify(data), 200
+    # 如果是 Response 对象，转换为字典
+    if isinstance(data, Response):
+        data_dict = asdict(data)
+    else:
+        data_dict = data
+    
+    # 使用 json.dumps 并设置 ensure_ascii=False 确保中文字符不被转义
+    json_str = json_module.dumps(
+        data_dict,
+        ensure_ascii=False,
+        cls=JSONEncoder
+    )
+    
+    return FlaskResponse(
+        json_str,
+        status=200,
+        mimetype='application/json; charset=utf-8'
+    )
 
 def success_json(data: Any = None) -> Any:
     """成功的数据响应"""
