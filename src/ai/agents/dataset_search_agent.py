@@ -5,13 +5,19 @@
 @Author  : tianshiyang
 @File    : dataset_search_agent.py
 """
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import PromptTemplate
-from langchain_core.runnables import RunnableLambda
-from langchain_core.tools import tool
 
+from langchain.agents import create_agent
+from langchain.tools import tool
+from langchain_core.messages import HumanMessage
+from langchain_core.prompts import PromptTemplate, SystemMessagePromptTemplate
+from langgraph.prebuilt import ToolRuntime
+from pydantic import BaseModel
 from ai import chat_qianwen_llm
 from service.milvus_database_service import get_retriever_with_scores
+
+
+class Context(BaseModel):
+    dataset_id: str
 
 # 知识库检索RAG提示词
 DATASET_SEARCH_RAG_PROMPT = """
@@ -27,73 +33,63 @@ DATASET_SEARCH_RAG_PROMPT = """
     用户问题：{question}
 """
 
-dataset_search_prompt = PromptTemplate(
+dataset_search_prompt = SystemMessagePromptTemplate.from_template(
     template=DATASET_SEARCH_RAG_PROMPT,
     input_variables=["retrieved_context", "question"],
 )
 
-def get_dataset_search_result(question: str, dataset_id: str):
+
+@tool
+def get_dataset_search_result(
+    question: str,
+    runtime: ToolRuntime[Context],
+) -> str:
     """
+    根据用户提问的问题，获取知识库的检索结果。当你需要进行知识库检索时调用此工具。
     :param question: 用户提问的问题
-    :param dataset_id: 关联的知识库 id
-    :return: 知识库检索出来的结果，list of (Document, score)
+    :return: 检索到的知识库内容摘要，供后续回答使用
     """
-    return get_retriever_with_scores(
+    raws = get_retriever_with_scores(
         query=question,
         min_score=0.8,
-        expr=f"dataset_id=='{dataset_id}'",
+        expr=f"dataset_id=='{runtime.context.dataset_id}'",
     )
-
-
-def _format_retrieved_docs(results):
-    """把检索结果格式化为 RAG 上下文字符串。"""
-    if not results:
+    if not raws:
         return "（未检索到相关文档）"
-
-    search_result = "\n\n".join(
-        f"[{i + 1}] {doc.page_content}"
-        for i, doc in enumerate(results)
-    )
-
-    return search_result
-
-def _build_rag_context(params: dict) -> str:
-    """从链输入 {question, dataset_id} 调用检索并格式化为上下文。"""
-    question = params["question"]
-    dataset_id = params["dataset_id"]
-    results = get_dataset_search_result(question=question, dataset_id=dataset_id)
-    return _format_retrieved_docs(results)
+    return "\n\n".join([raw.page_content for raw in raws])
 
 
 @tool
-def dataset_search_agent_tool(dataset_id: str, question: str):
+def dataset_search_agent_tool(question: str, dataset_id: str):
     """
     获取知识库检索结果的Agent，当你需要进行知识库检索的时候，你可以调用此工具
     :param dataset_id: 知识库id
     :param question: 用户提问的问题
     :return: 大语言模型返回的知识库问题的回答
     """
-    chain = (
-            {
-                "retrieved_context": RunnableLambda(_build_rag_context),
-                "question": RunnableLambda(lambda inp: inp["question"]),
-            }
-            | dataset_search_prompt
-            | chat_qianwen_llm
-            | StrOutputParser()
+
+    agent = create_agent(
+        model=chat_qianwen_llm,
+        tools=[get_dataset_search_result],
+        context_schema=Context,
+        name="dataset_search_agent",
+        system_prompt=DATASET_SEARCH_RAG_PROMPT,
     )
-    # 链输入格式: {"question": "用户问题", "dataset_id": "知识库 id"}
-    # 会先用 question + dataset_id 做知识库检索，再把检索结果与 question 一起交给 RAG 提示与 LLM
-    return chain.invoke({
-        "question": question,
-        "dataset_id": dataset_id,
-    })
+    return agent.stream(
+        {
+            "messages": [HumanMessage(question)],
+        },
+        context=Context(
+            dataset_id=dataset_id,
+        ),
+        stream_mode = "messages",
+    )
 
 if __name__ == "__main__":
-    out = dataset_search_agent_tool.stream({
+    results = dataset_search_agent_tool.invoke({
         "question": "电影《羞羞的铁拳》什么时候上映的",
-        # "question": "今日上证50收盘多少点",
         "dataset_id": "ce949e61-4e52-4aeb-a97c-8aa77dea0f0f",
-    }, stream_mode="messages")
-    for doc in out:
-        print(doc)
+    })
+    # agent.stream() 返回的是迭代器，需要消费才能拿到每条消息
+    for chunk in results:
+        print(chunk)

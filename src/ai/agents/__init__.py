@@ -5,3 +5,8 @@
 @Author  : tianshiyang
 @File    : __init__.py.py
 """
+from .dataset_search_agent import dataset_search_agent_tool
+
+__all__ = [
+    "dataset_search_agent_tool"
+]
