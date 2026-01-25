@@ -17,7 +17,7 @@ from service.milvus_database_service import get_retriever_with_scores
 
 
 class Context(BaseModel):
-    dataset_id: str
+    dataset_ids: list[str]
 
 # 知识库检索RAG提示词
 DATASET_SEARCH_RAG_PROMPT = """
@@ -52,7 +52,7 @@ def get_dataset_search_result(
     raws = get_retriever_with_scores(
         query=question,
         min_score=0.8,
-        expr=f"dataset_id=='{runtime.context.dataset_id}'",
+        expr=f"dataset_id in {runtime.context.dataset_ids}",
     )
     if not raws:
         return "（未检索到相关文档）"
@@ -60,10 +60,10 @@ def get_dataset_search_result(
 
 
 @tool
-def dataset_search_agent_tool(question: str, dataset_id: str):
+def dataset_search_agent_tool(question: str, dataset_ids: list[str]):
     """
     获取知识库检索结果的Agent，当你需要进行知识库检索的时候，你可以调用此工具
-    :param dataset_id: 知识库id
+    :param dataset_ids: 用户选中的要检索的知识库列表
     :param question: 用户提问的问题
     :return: 大语言模型返回的知识库问题的回答
     """
@@ -80,7 +80,7 @@ def dataset_search_agent_tool(question: str, dataset_id: str):
             "messages": [HumanMessage(question)],
         },
         context=Context(
-            dataset_id=dataset_id,
+            dataset_ids=dataset_ids,
         ),
         stream_mode = "messages",
     )
@@ -88,7 +88,7 @@ def dataset_search_agent_tool(question: str, dataset_id: str):
 if __name__ == "__main__":
     results = dataset_search_agent_tool.invoke({
         "question": "电影《羞羞的铁拳》什么时候上映的",
-        "dataset_id": "ce949e61-4e52-4aeb-a97c-8aa77dea0f0f",
+        "dataset_ids": ["ce949e61-4e52-4aeb-a97c-8aa77dea0f0f"],
     })
     # agent.stream() 返回的是迭代器，需要消费才能拿到每条消息
     for chunk in results:
