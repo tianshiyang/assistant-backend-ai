@@ -130,6 +130,7 @@ def get_retriever_with_scores(
         sparse_weight: float = 0.3,
         final_k: int = None,
         min_score: float = None,
+        need_score: bool = False,
 ):
     """
     获取检索结果并返回分数（用于调试和优化）
@@ -142,6 +143,7 @@ def get_retriever_with_scores(
         sparse_weight: Sparse向量权重
         final_k: 最终返回的数量（如果为None，返回所有结果）
         min_score: 最小分数阈值（过滤低分结果）
+        need_score: 是否需要返回分数
     
     Returns:
         List[Tuple[Document, float]]: (文档, 分数) 的列表，分数越高越相关
@@ -173,12 +175,15 @@ def get_retriever_with_scores(
     # 取前 final_k 个
     if final_k is not None:
         docs_with_scores = docs_with_scores[:final_k]
+
+    if not need_score:
+        docs_with_scores = [doc for doc, score in docs_with_scores]
     
     return docs_with_scores
 
 if __name__ == "__main__":
-    delete_documents(user_id="749d17ca-4227-4127-b94a-12ec8ff451dd", dataset_id="ce949e61-4e52-4aeb-a97c-8aa77dea0f0f")
-    # cur_user_id = "749d17ca-4227-4127-b94a-12ec8ff451dd"
+    # delete_documents(user_id="749d17ca-4227-4127-b94a-12ec8ff451dd", dataset_id="ce949e61-4e52-4aeb-a97c-8aa77dea0f0f")
+    cur_user_id = "749d17ca-4227-4127-b94a-12ec8ff451dd"
     # cur_dataset_id = "2e949e61-4e52-4aeb-a97c-8aa77dea0f0f"
     # query = "电影《羞羞的铁拳》什么时候上映的"
     #
