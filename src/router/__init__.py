@@ -7,9 +7,14 @@
 """
 from .account_routes import account_blueprint
 from .dataset_routes import dataset_blueprint
-from .document_router import document_router
+from .document_router import document_blueprint
+from .ai_router import ai_blueprint
+from .public_router import public_blueprint
+
 __all__ = [
     "account_blueprint",
     "dataset_blueprint",
-    "document_router"
+    "document_blueprint",
+    "ai_blueprint",
+    "public_blueprint"
 ]
