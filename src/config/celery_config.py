@@ -1,4 +1,6 @@
 import os
+from urllib.parse import quote_plus
+
 from celery import Celery, Task
 from celery.signals import setup_logging
 from flask import Flask
@@ -15,15 +17,21 @@ def config_celery_logging(**kwargs):
     init_log_config()
 
 
-def init_celery_config(app: Flask) -> Celery:
-    # Celery 配置
-    redis_host = os.getenv("REDIS_HOST", "localhost")
-    redis_port = os.getenv("REDIS_PORT", "6379")
-    redis_password = os.getenv("REDIS_PASSWORD", "")
+def _build_redis_url(db: int) -> str:
+    """从 .env 中的 Redis 连接信息 + 指定 DB 号拼出 Celery 用的 Redis URL。"""
+    host = os.getenv("REDIS_HOST", "localhost")
+    port = os.getenv("REDIS_PORT", "6379")
+    username = os.getenv("REDIS_USERNAME") or ""
+    password = os.getenv("REDIS_PASSWORD") or ""
+    # user_part = f"{quote_plus(username)}:{quote_plus(password)}"
+    return f"redis://:{password}@{host}:{port}/{db}"
 
-    # 构建 Redis URL
-    broker_url = f"redis://:{redis_password}@{redis_host}:{redis_port}/0"
-    result_backend_url = f"redis://:{redis_password}@{redis_host}:{redis_port}/1"
+
+def init_celery_config(app: Flask) -> Celery:
+    broker_db = int(os.getenv("CELERY_BROKER_DB", "0"))
+    backend_db = int(os.getenv("CELERY_RESULT_BACKEND_DB", "1"))
+    broker_url = _build_redis_url(broker_db)
+    result_backend_url = _build_redis_url(backend_db)
 
     app.config.from_mapping(
         CELERY=dict(

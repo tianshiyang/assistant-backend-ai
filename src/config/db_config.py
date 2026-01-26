@@ -15,21 +15,17 @@ db = SQLAlchemy()
 
 
 def init_db_config(app: Flask):
-    """初始化数据库配置"""
-    # 从环境变量获取数据库连接字符串
-    database_url = os.getenv('SQLALCHEMY_DATABASE_URI')
+    """初始化数据库配置与 Postgres 连接池。"""
+    database_url = os.getenv("SQLALCHEMY_DATABASE_URI")
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    # 配置数据库连接
-    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # 禁用修改跟踪以提高性能
-    
-    # 配置连接池选项
-    engine_options = {
-        "pool_size": int(os.getenv("SQLALCHEMY_POOL_SIZE")),
-        "pool_recycle": int(os.getenv("SQLALCHEMY_POOL_RECYCLE"))
+    # 连接池：pool_size 常驻连接数，max_overflow 额外可创建的连接数，pool_recycle 连接回收时间（秒）
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_size": int(os.getenv("SQLALCHEMY_POOL_SIZE", "5")),
+        "max_overflow": int(os.getenv("SQLALCHEMY_MAX_OVERFLOW", "10")),
+        "pool_recycle": int(os.getenv("SQLALCHEMY_POOL_RECYCLE", "3600")),
     }
-
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = engine_options
 
     app.config['SQLALCHEMY_ECHO'] = os.getenv('SQLALCHEMY_ECHO', 'False').lower() == 'true'  # 是否打印 SQL 语句
     
