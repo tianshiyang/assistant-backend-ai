@@ -98,7 +98,6 @@ if __name__ == "__main__":
     # Token 统计
     final_answer_tokens = None  # 最终答案阶段的 token 统计
     for chunk in chunks:
-        print(chunk)
         if isinstance(chunk, tuple) and len(chunk) == 2:
             message_chunk, metadata = chunk
             # 获取langgraph信息
@@ -124,8 +123,6 @@ if __name__ == "__main__":
             elif msg_type == "ToolMessage":
                 print(f"\n  → 工具执行结果: {message_chunk.content}")
                 print(f"  → 工具名称: {message_chunk.name}")
-
-            print("message_chunks", message_chunk, )
 
             # 检查是否有 usage_metadata（token 统计），最后一个chunk内容为'',并且有usage_metadata字段
             if hasattr(message_chunk, "usage_metadata") and message_chunk.usage_metadata:
