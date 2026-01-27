@@ -20,11 +20,16 @@ def init_db_config(app: Flask):
     app.config["SQLALCHEMY_DATABASE_URI"] = database_url
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    # 连接池：pool_size 常驻连接数，max_overflow 额外可创建的连接数，pool_recycle 连接回收时间（秒）
+    # 连接池配置：
+    # - pool_size: 常驻连接数
+    # - max_overflow: 额外可创建的连接数（高峰时）
+    # - pool_recycle: 连接回收时间（秒），避免长时间不断开被数据库服务器关闭
+    # - pool_pre_ping: 使用前检查连接是否有效，自动重连失效连接（Celery 任务必需）
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
         "pool_size": int(os.getenv("SQLALCHEMY_POOL_SIZE", "5")),
         "max_overflow": int(os.getenv("SQLALCHEMY_MAX_OVERFLOW", "10")),
         "pool_recycle": int(os.getenv("SQLALCHEMY_POOL_RECYCLE", "3600")),
+        "pool_pre_ping": True,  # Celery worker 长期运行必需：使用前检查连接有效性
     }
 
     app.config['SQLALCHEMY_ECHO'] = os.getenv('SQLALCHEMY_ECHO', 'False').lower() == 'true'  # 是否打印 SQL 语句

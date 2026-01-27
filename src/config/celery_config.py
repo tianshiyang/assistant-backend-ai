@@ -55,9 +55,27 @@ def init_celery_config(app: Flask) -> Celery:
     )
 
     class FlaskTask(Task):
+        """Flask 任务基类，确保每个任务都有 Flask app context 和有效的数据库连接。"""
+        
         def __call__(self, *args: object, **kwargs: object) -> object:
             with app.app_context():
-                return self.run(*args, **kwargs)
+                # 清理可能已过期的数据库连接，确保使用新的有效连接
+                try:
+                    from config.db_config import db
+                    # 移除过期的 session，强制使用连接池中的新连接
+                    db.session.remove()
+                except Exception:
+                    # 如果 db 未初始化或出错，忽略（某些任务可能不需要数据库）
+                    pass
+                
+                try:
+                    return self.run(*args, **kwargs)
+                finally:
+                    # 任务结束后清理 session，释放连接回连接池
+                    try:
+                        db.session.remove()
+                    except Exception:
+                        pass
 
     celery_app = Celery(app.name, task_cls=FlaskTask)
     celery_app.config_from_object(app.config["CELERY"])
