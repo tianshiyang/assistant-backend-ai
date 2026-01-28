@@ -5,9 +5,16 @@
 @Author  : tianshiyang
 @File    : ai_service.py
 """
+from model.conversation import Conversation
 from schema.ai_schema import AIChatSchema
 from task import run_ai_chat_task
 
+def ai_create_conversation_service(user_id: str) -> Conversation:
+    conversation = Conversation(
+        name="新会话",
+        user_id=user_id,
+    ).create()
+    return conversation
 
 def ai_chat_service(req: AIChatSchema, user_id: str):
     """AI聊天"""

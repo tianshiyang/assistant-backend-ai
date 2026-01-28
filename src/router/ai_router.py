@@ -7,9 +7,12 @@
 """
 from flask import Blueprint
 
-from handler.ai_handler import ai_chat_handler
+from handler.ai_handler import ai_chat_handler, ai_create_conversation_handler
 
 ai_blueprint = Blueprint("chat", __name__, url_prefix="")
+
+# 创建AI会话
+ai_blueprint.add_url_rule("/api/ai/conversation/create", view_func=ai_create_conversation_handler)
 
 # 对话
 ai_blueprint.add_url_rule("/api/ai/chat", methods=["POST"], view_func=ai_chat_handler)

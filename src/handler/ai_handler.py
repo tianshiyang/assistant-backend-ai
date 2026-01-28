@@ -9,8 +9,14 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from pkg.response import success_message
 from schema.ai_schema import AIChatSchema
-from service.ai_service import ai_chat_service
+from service.ai_service import ai_chat_service, ai_create_conversation_service
 
+
+@jwt_required()
+def ai_create_conversation_handler():
+    user_id = get_jwt_identity()
+    res = ai_create_conversation_service(user_id)
+    return success_message(res.to_dict())
 
 @jwt_required()
 def ai_chat_handler():
