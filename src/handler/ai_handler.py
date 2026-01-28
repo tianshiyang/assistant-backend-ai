@@ -13,12 +13,6 @@ from service.ai_service import ai_chat_service, ai_create_conversation_service
 
 
 @jwt_required()
-def ai_create_conversation_handler():
-    user_id = get_jwt_identity()
-    res = ai_create_conversation_service(user_id)
-    return success_message(res.to_dict())
-
-@jwt_required()
 def ai_chat_handler():
     req = AIChatSchema()
     """与AI聊天对话"""
