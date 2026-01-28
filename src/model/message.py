@@ -7,7 +7,7 @@
 """
 import uuid
 
-from sqlalchemy import UUID, Integer, Text, VARCHAR
+from sqlalchemy import UUID, Integer, Text, VARCHAR, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from model import BaseModel
@@ -35,22 +35,16 @@ class Message(BaseModel):
         comment="用户id",
     )
 
-    query: Mapped[str] = mapped_column(
+    question: Mapped[str] = mapped_column(
         Text,
         nullable=False,
         comment="用户提问的问题",
     )
 
-    type: Mapped[str] = mapped_column(
-        VARCHAR(10),
-        nullable=False,
-        comment="AI返回消息类型: ping-保持连通, done-完成, error-失败, tool-调用工具, generate-生成内容, tool_result-工具执行结果, save_token-保存token应用量",
-    )
-
     content: Mapped[str] = mapped_column(
         Text,
         nullable=False,
-        default="",
+        default=text("'[]'::jsonb"),
         comment="AI返回的内容",
     )
 

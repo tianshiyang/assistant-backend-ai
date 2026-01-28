@@ -24,6 +24,7 @@ from langgraph.checkpoint.postgres import PostgresSaver
 
 from entities.chat_response_entity import ChatResponseEntity, ChatResponseType
 from entities.redis_entity import REDIS_CHAT_GENERATED_KEY
+from service.message_service import create_message_service
 from utils import get_module_logger
 
 logger = get_module_logger(__name__)
@@ -66,8 +67,15 @@ class AgentService:
         self._tools = []
         self._checkpointer_context = None  # PostgresSaver 上下文管理器
         self._checkpointer = None  # PostgresSaver 实例
+        self._token_dict = {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+        }
         self._redis = current_app.redis_stream
+        self._ai_chunks = [] # AI输出的内容
         self._build_tools(skills)
+
 
     def _build_tools(self, skills: list[Skills]) -> None:
         """构建工具列表"""
@@ -80,6 +88,9 @@ class AgentService:
 
     def _update_chunk_to_redis(self, payload: ChatResponseEntity) -> None:
         """更新流内容到redis中"""
+        if payload["type"] != ChatResponseType.CREATE_CONVERSATION:
+            # 保存AI输出的内容，不保存创建会话的chunk
+            self._ai_chunks.append(payload)
         redis_key = REDIS_CHAT_GENERATED_KEY.format(conversation_id=self.conversation_id)
         self._redis.rpush(redis_key, json.dumps(payload))
 
@@ -136,15 +147,15 @@ class AgentService:
 
         # 打印最终统计信息
         if final_answer_tokens:
-            token_dict = {
-                "input_tokens'": final_answer_tokens.get('input_tokens'),
-                "output_tokens'": final_answer_tokens.get('output_tokens'),
-                "total_tokens'": final_answer_tokens.get('total_tokens'),
+            self._token_dict = {
+                "input_tokens": final_answer_tokens.get('input_tokens'),
+                "output_tokens": final_answer_tokens.get('output_tokens'),
+                "total_tokens": final_answer_tokens.get('total_tokens'),
             }
             # 保存token用量
             self._update_chunk_to_redis(ChatResponseEntity(
                 updated_time=time.time(),
-                content=token_dict,
+                content=self._token_dict,
                 type=ChatResponseType.SAVE_TOKEN,
                 tool_call=None
             ))
@@ -157,6 +168,18 @@ class AgentService:
         ))
 
         logger.info(f"Agent 响应完成，会话ID: {self.conversation_id}")
+
+    def _save_messages(self):
+        """保存聊天内容到message表中"""
+        create_message_service(
+            conversation_id=self.conversation_id,
+            user_id=self.user_id,
+            question=self.question,
+            content=json.dumps(self._ai_chunks),
+            input_tokens=self._token_dict.get("input_tokens"),
+            output_tokens=self._token_dict.get("output_tokens"),
+            total_tokens=self._token_dict.get("total_tokens"),
+        )
 
     def build_agent(self) -> None:
         """构建智能体并执行流式响应"""
@@ -205,6 +228,9 @@ class AgentService:
             logger.error(f"Agent 处理出错，会话ID: {self.conversation_id}, 错误: {str(e)}", exc_info=True)
             raise
         finally:
+            # 保存聊天内容到数据库中
+            print("self._token_dict", self._token_dict)
+            self._save_messages()
             # 确保完成后关闭 PostgresSaver 连接
             self.close()
 
