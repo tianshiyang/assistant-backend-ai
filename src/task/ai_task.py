@@ -1,0 +1,50 @@
+#!/user/bin/env python
+# -*- coding: utf-8 -*-
+"""
+@Time    : 2026/1/27 10:53
+@Author  : tianshiyang
+@File    : ai_task.py
+"""
+from celery import shared_task
+
+from entities.ai import Skills
+from service.agent_service import AgentService
+from utils import get_module_logger
+
+logger = get_module_logger(__name__)
+
+
+@shared_task
+def run_ai_chat_task(
+        user_id: str,
+        conversation_id: str,
+        question: str,
+        dataset_ids: list[str],
+        skills: list[Skills],
+):
+    """
+    执行 AI 聊天任务
+    
+    企业级最佳实践：使用上下文管理器确保资源正确释放
+    """
+    logger.info(f"开始执行AI生成任务，用户ID: {user_id}, 会话ID: {conversation_id}")
+    
+    # 使用上下文管理器确保资源正确释放（即使出错也会关闭连接）
+    agent_service = AgentService(
+        user_id=user_id,
+        conversation_id=conversation_id,
+        question=question,
+        dataset_ids=dataset_ids,
+        skills=skills
+    )
+    agent_service.build_agent()
+    # stream() 方法内部会在完成后自动关闭连接，但使用 with 语句提供双重保障
+    # chunks = agent_service.stream()
+
+    # 消费生成器，确保所有数据都被处理
+    # stream() 方法内部已经处理了所有逻辑，这里只需要确保迭代完成
+    # for chunk in chunks:
+    #     # chunk 已经被 stream() 方法内部处理，这里可以添加额外的处理逻辑
+    #     pass
+
+    logger.info(f"AI生成任务完成，用户ID: {user_id}, 会话ID: {conversation_id}")

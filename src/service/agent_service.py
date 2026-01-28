@@ -1,0 +1,260 @@
+#!/user/bin/env python
+# -*- coding: utf-8 -*-
+"""
+@Time    : 2026/1/26 21:59
+@Author  : tianshiyang
+@File    : agent_service.py
+"""
+import json
+import os
+import time
+from typing import Iterator, Any
+
+from flask import current_app
+from langchain.agents import create_agent
+from langchain.agents.middleware import SummarizationMiddleware
+from langchain_core.messages import HumanMessage, AnyMessage
+from langchain_core.runnables import RunnableConfig
+from pydantic import BaseModel
+
+from ai import chat_qianwen_llm
+from ai.agents import dataset_search_agent_tool
+from entities.ai import Skills, SUMMARIZATION_MIDDLEWARE_PROMPT
+from langgraph.checkpoint.postgres import PostgresSaver
+
+from entities.chat_response_entity import ChatResponseEntity, ChatResponseType
+from entities.redis_entity import REDIS_CHAT_GENERATED_KEY
+from utils import get_module_logger
+
+logger = get_module_logger(__name__)
+
+tool_entity = {
+    Skills.DATASET_RETRIEVER.value: dataset_search_agent_tool # 知识库检索Agent
+}
+
+class AgentContextSchema(BaseModel):
+    dataset_ids: list[str]
+
+
+class AgentService:
+    """
+    AI Agent 服务类
+
+    企业级最佳实践：
+    - 正确管理 PostgresSaver 连接生命周期
+    - 确保连接在使用完成后自动关闭
+    """
+
+    def __init__(
+            self,
+            question: str,
+            user_id: str,
+            conversation_id: str,
+            dataset_ids: list[str],
+            skills: list[Skills]
+    ):
+        """
+        初始化 AgentService
+
+        Args:
+            question: 用户问题
+            user_id: 用户ID
+            conversation_id: 会话ID
+            dataset_ids: 数据集ID列表
+            skills: 技能列表
+        """
+        self.user_id = user_id
+        self.dataset_ids = dataset_ids
+        self.question = question
+        self.conversation_id = conversation_id
+        self._tools = []
+        self._checkpointer_context = None  # PostgresSaver 上下文管理器
+        self._checkpointer = None  # PostgresSaver 实例
+        self._redis = current_app.redis_stream
+        self._build_tools(skills)
+
+    def _build_tools(self, skills: list[Skills]) -> None:
+        """构建工具列表"""
+        for skill in skills:
+            tool = tool_entity.get(skill)
+            if tool:
+                self._tools.append(tool)
+            else:
+                logger.warning(f"未找到技能对应的工具: {skill}")
+
+    def _update_chunk_to_redis(self, payload: ChatResponseEntity) -> None:
+        """更新流内容到redis中"""
+        redis_key = REDIS_CHAT_GENERATED_KEY.format(conversation_id=self.conversation_id)
+        self._redis.set(redis_key, json.dumps(payload))
+
+
+    def _handle_stream_chunks(self, chunks: Iterator[dict[str, Any] | Any]) -> None:
+        """处理stream流"""
+        # current_step = None
+        # current_node = None
+        final_answer_tokens = None  # 最终答案阶段的 token 统计
+
+        for chunk in chunks:
+            if isinstance(chunk, tuple) and len(chunk) == 2:
+                message_chunk, metadata = chunk
+                # 获取 langgraph 信息
+                # step = metadata.get("langgraph_step", 'N/A')
+                # node = metadata.get('langgraph_node', 'N/A')
+
+                # if current_node != step and current_step != step:
+                #     if current_step is not None:
+                #         print()  # 换行
+                #     print(f"\n【步骤 {step} - 节点: {node}】")
+                #     current_step = step
+                #     current_node = node
+
+                # 根据消息类型处理
+                msg_type = message_chunk.__class__.__name__
+                if msg_type == "AIMessageChunk":
+                    if hasattr(message_chunk, "tool_calls") and message_chunk.tool_calls:
+                        # 工具调用
+                        self._update_chunk_to_redis(ChatResponseEntity(
+                            updated_time=time.time(),
+                            content="",
+                            type=ChatResponseType.TOOL,
+                            tool_call=message_chunk.tool_calls[0]['name']
+                        ))
+                        # print(f"  → AI 决定调用工具: {message_chunk.tool_calls[0]['name']}")
+                        # print(f"  → 工具参数: {message_chunk.tool_calls[0]['args']}")
+                    elif hasattr(message_chunk, 'content') and message_chunk.content:
+                        # 实时打印内容（打字机效果）
+                        # 保存AI输出内容
+                        self._update_chunk_to_redis(ChatResponseEntity(
+                            updated_time=time.time(),
+                            content=message_chunk.content,
+                            type=ChatResponseType.GENERATE,
+                            tool_call=None
+                        ))
+                        # print(message_chunk.content, end="", flush=True)
+                elif msg_type == "ToolMessage":
+                    self._update_chunk_to_redis(ChatResponseEntity(
+                        updated_time=time.time(),
+                        content=message_chunk.content,
+                        type=ChatResponseType.TOOL_RESULT,
+                        tool_call=None
+                    ))
+                    # print(f"\n  → 工具执行结果: {message_chunk.content}")
+                    # print(f"  → 工具名称: {message_chunk.name}")
+
+                # 检查是否有 usage_metadata（token 统计）
+                if hasattr(message_chunk, "usage_metadata") and message_chunk.usage_metadata:
+                    final_answer_tokens = message_chunk.usage_metadata
+
+        # 打印最终统计信息
+        if final_answer_tokens:
+            token_dict = {
+                "input_tokens'": final_answer_tokens.get('input_tokens'),
+                "output_tokens'": final_answer_tokens.get('output_tokens'),
+                "total_tokens'": final_answer_tokens.get('total_tokens'),
+            }
+            # 保存token用量
+            self._update_chunk_to_redis(ChatResponseEntity(
+                updated_time=time.time(),
+                content=token_dict,
+                type=ChatResponseType.SAVE_TOKEN,
+                tool_call=None
+            ))
+            # print(
+            #     f"\n  → [最终答案阶段] Token 使用: "
+            #     f"输入={final_answer_tokens.get('input_tokens')}, "
+            #     f"输出={final_answer_tokens.get('output_tokens')}, "
+            #     f"总计={final_answer_tokens.get('total_tokens')}"
+            # )
+
+        self._update_chunk_to_redis(ChatResponseEntity(
+            updated_time=time.time(),
+            content="",
+            type=ChatResponseType.DONE,
+            tool_call=None
+        ))
+
+        logger.info(f"Agent 响应完成，会话ID: {self.conversation_id}")
+
+    def build_agent(self):
+        """构建智能体并执行流式响应"""
+        db_uri = os.getenv("POSTGRES_SHOT_MEMORY_URI")
+
+        self._checkpointer_context = PostgresSaver.from_conn_string(db_uri)
+        self._checkpointer = self._checkpointer_context.__enter__()
+
+        try:
+            logger.info(f"开始构建 Agent，会话ID: {self.conversation_id}")
+
+            # 创建 agent
+            agent = create_agent(
+                model=chat_qianwen_llm,
+                tools=self._tools,
+                context_schema=AgentContextSchema,
+                middleware=[
+                    SummarizationMiddleware(
+                        model=chat_qianwen_llm,
+                        trigger=[('tokens', 4000), ("messages", 100)],
+                        summary_prompt=SUMMARIZATION_MIDDLEWARE_PROMPT
+                    )
+                ],
+                checkpointer=self._checkpointer,
+            )
+
+            # 执行流式响应
+            chunks = agent.stream(
+                {
+                    "messages": [HumanMessage(content=self.question)],
+                },
+                stream_mode="messages",
+                config=self.get_config(conversation_id=self.conversation_id),
+                context=AgentContextSchema(dataset_ids=self.dataset_ids)
+            )
+            # 处理stream流
+            self._handle_stream_chunks(chunks=chunks)
+
+        except Exception as e:
+            self._update_chunk_to_redis(ChatResponseEntity(
+                updated_time=time.time(),
+                content=f"生成失败，错误原因：{str(e)}",
+                type=ChatResponseType.ERROR,
+                tool_call=None
+            ))
+            logger.error(f"Agent 处理出错，会话ID: {self.conversation_id}, 错误: {str(e)}", exc_info=True)
+            raise
+        finally:
+            # 确保完成后关闭 PostgresSaver 连接
+            self.close()
+
+    def close(self) -> None:
+        """关闭 PostgresSaver 连接"""
+        if self._checkpointer_context is not None and self._checkpointer is not None:
+            try:
+                # 调用上下文管理器的 __exit__ 方法关闭连接
+                self._checkpointer_context.__exit__(None, None, None)
+                logger.info(f"PostgresSaver 连接已关闭，会话ID: {self.conversation_id}")
+            except Exception as e:
+                logger.error(
+                    f"关闭 PostgresSaver 连接时出错，会话ID: {self.conversation_id}, 错误: {str(e)}",
+                    exc_info=True
+                )
+            finally:
+                self._checkpointer_context = None
+                self._checkpointer = None
+
+    def __enter__(self):
+        """上下文管理器入口"""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """上下文管理器出口，确保资源释放"""
+        self.close()
+        return False  # 不抑制异常
+
+
+    @staticmethod
+    def get_config(conversation_id: str):
+        return RunnableConfig(
+            configurable={
+                "thread_id": conversation_id,
+            }
+    )

@@ -44,7 +44,7 @@ class Message(BaseModel):
     type: Mapped[str] = mapped_column(
         VARCHAR(10),
         nullable=False,
-        comment="AI返回消息类型: ping-保持连通, done-完成, error-失败, tool-调用工具, generate-生成内容",
+        comment="AI返回消息类型: ping-保持连通, done-完成, error-失败, tool-调用工具, generate-生成内容, tool_result-工具执行结果, save_token-保存token应用量",
     )
 
     content: Mapped[str] = mapped_column(
