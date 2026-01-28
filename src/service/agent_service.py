@@ -37,13 +37,7 @@ class AgentContextSchema(BaseModel):
 
 
 class AgentService:
-    """
-    AI Agent 服务类
-
-    企业级最佳实践：
-    - 正确管理 PostgresSaver 连接生命周期
-    - 确保连接在使用完成后自动关闭
-    """
+    """AI Agent 服务类"""
 
     def __init__(
             self,
@@ -51,7 +45,8 @@ class AgentService:
             user_id: str,
             conversation_id: str,
             dataset_ids: list[str],
-            skills: list[Skills]
+            skills: list[Skills],
+            is_new_conversation: bool = False,
     ):
         """
         初始化 AgentService
@@ -67,6 +62,7 @@ class AgentService:
         self.dataset_ids = dataset_ids
         self.question = question
         self.conversation_id = conversation_id
+        self.is_new_conversation = is_new_conversation
         self._tools = []
         self._checkpointer_context = None  # PostgresSaver 上下文管理器
         self._checkpointer = None  # PostgresSaver 实例
@@ -90,23 +86,20 @@ class AgentService:
 
     def _handle_stream_chunks(self, chunks: Iterator[dict[str, Any] | Any]) -> None:
         """处理stream流"""
-        # current_step = None
-        # current_node = None
         final_answer_tokens = None  # 最终答案阶段的 token 统计
+
+        if self.is_new_conversation:
+            # 保存conversation_id并发送给前端
+            self._update_chunk_to_redis(ChatResponseEntity(
+                updated_time=time.time(),
+                content=self.conversation_id,
+                type=ChatResponseType.CREATE_CONVERSATION,
+                tool_call=None
+            ))
 
         for chunk in chunks:
             if isinstance(chunk, tuple) and len(chunk) == 2:
                 message_chunk, metadata = chunk
-                # 获取 langgraph 信息
-                # step = metadata.get("langgraph_step", 'N/A')
-                # node = metadata.get('langgraph_node', 'N/A')
-
-                # if current_node != step and current_step != step:
-                #     if current_step is not None:
-                #         print()  # 换行
-                #     print(f"\n【步骤 {step} - 节点: {node}】")
-                #     current_step = step
-                #     current_node = node
 
                 # 根据消息类型处理
                 msg_type = message_chunk.__class__.__name__
@@ -119,8 +112,6 @@ class AgentService:
                             type=ChatResponseType.TOOL,
                             tool_call=message_chunk.tool_calls[0]['name']
                         ))
-                        # print(f"  → AI 决定调用工具: {message_chunk.tool_calls[0]['name']}")
-                        # print(f"  → 工具参数: {message_chunk.tool_calls[0]['args']}")
                     elif hasattr(message_chunk, 'content') and message_chunk.content:
                         # 实时打印内容（打字机效果）
                         # 保存AI输出内容
@@ -130,7 +121,6 @@ class AgentService:
                             type=ChatResponseType.GENERATE,
                             tool_call=None
                         ))
-                        # print(message_chunk.content, end="", flush=True)
                 elif msg_type == "ToolMessage":
                     self._update_chunk_to_redis(ChatResponseEntity(
                         updated_time=time.time(),
@@ -138,8 +128,6 @@ class AgentService:
                         type=ChatResponseType.TOOL_RESULT,
                         tool_call=None
                     ))
-                    # print(f"\n  → 工具执行结果: {message_chunk.content}")
-                    # print(f"  → 工具名称: {message_chunk.name}")
 
                 # 检查是否有 usage_metadata（token 统计）
                 if hasattr(message_chunk, "usage_metadata") and message_chunk.usage_metadata:
@@ -159,12 +147,6 @@ class AgentService:
                 type=ChatResponseType.SAVE_TOKEN,
                 tool_call=None
             ))
-            # print(
-            #     f"\n  → [最终答案阶段] Token 使用: "
-            #     f"输入={final_answer_tokens.get('input_tokens')}, "
-            #     f"输出={final_answer_tokens.get('output_tokens')}, "
-            #     f"总计={final_answer_tokens.get('total_tokens')}"
-            # )
 
         self._update_chunk_to_redis(ChatResponseEntity(
             updated_time=time.time(),
@@ -175,7 +157,7 @@ class AgentService:
 
         logger.info(f"Agent 响应完成，会话ID: {self.conversation_id}")
 
-    def build_agent(self):
+    def build_agent(self) -> None:
         """构建智能体并执行流式响应"""
         db_uri = os.getenv("POSTGRES_SHOT_MEMORY_URI")
 
@@ -252,7 +234,7 @@ class AgentService:
 
 
     @staticmethod
-    def get_config(conversation_id: str):
+    def get_config(conversation_id: str) -> RunnableConfig:
         return RunnableConfig(
             configurable={
                 "thread_id": conversation_id,

@@ -16,7 +16,7 @@ class AIChatSchema(FlaskForm):
     dataset_ids = ListField("dataset_ids", default=[])
     skills = ListField("skills", default=[])
     conversation_id = StringField("conversation_id", validators=[
-        DataRequired("会话id必传")
+        # DataRequired("会话id必传")
     ])
     question = StringField("question", validators=[
         DataRequired("提问的问题不能为空")

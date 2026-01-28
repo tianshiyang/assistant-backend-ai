@@ -23,5 +23,14 @@ def ai_chat_handler():
     req = AIChatSchema()
     """与AI聊天对话"""
     user_id = get_jwt_identity()
-    ai_chat_service(req, user_id)
+    conversation_id = req.conversation_id.data
+    if req.conversation_id.data is None:
+        # 新任务
+        conversation_id = ai_create_conversation_service(user_id).id
+    ai_chat_service(
+        req=req,
+        user_id=user_id,
+        conversation_id=conversation_id,
+        is_new_conversation = req.conversation_id.data is None,
+    )
     return success_message("成功")

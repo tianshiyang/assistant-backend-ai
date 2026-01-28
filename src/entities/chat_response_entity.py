@@ -10,8 +10,17 @@ from enum import Enum
 from typing import Any, TypedDict
 from entities.ai import Skills
 
-# ping-保持连通, done-完成, error-失败, tool-调用工具, generate-生成内容
 class ChatResponseType(str, Enum):
+    """
+    ping-保持连通
+    done-完成
+    error-失败
+    tool-调用工具
+    generate-生成内容
+    tool_result-工具返回结果
+    generates-生成内容
+    create_conversation-生成会话
+    """
     PING = "ping"
     DONE = "done"
     ERROR = "error"
@@ -19,6 +28,7 @@ class ChatResponseType(str, Enum):
     TOOL_RESULT = "tool_result"
     SAVE_TOKEN = "save_token"
     GENERATE = "generate"
+    CREATE_CONVERSATION = "create_conversation"
 
 
 # AI返回的响应体

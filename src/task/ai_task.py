@@ -21,12 +21,9 @@ def run_ai_chat_task(
         question: str,
         dataset_ids: list[str],
         skills: list[Skills],
+        is_new_conversation: bool = False
 ):
-    """
-    执行 AI 聊天任务
-    
-    企业级最佳实践：使用上下文管理器确保资源正确释放
-    """
+    """执行 AI 聊天任务"""
     logger.info(f"开始执行AI生成任务，用户ID: {user_id}, 会话ID: {conversation_id}")
     
     # 使用上下文管理器确保资源正确释放（即使出错也会关闭连接）
@@ -35,7 +32,8 @@ def run_ai_chat_task(
         conversation_id=conversation_id,
         question=question,
         dataset_ids=dataset_ids,
-        skills=skills
+        skills=skills,
+        is_new_conversation=is_new_conversation
     )
     agent_service.build_agent()
     # stream() 方法内部会在完成后自动关闭连接，但使用 with 语句提供双重保障
