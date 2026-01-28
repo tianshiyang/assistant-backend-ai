@@ -21,3 +21,9 @@ class AIChatSchema(FlaskForm):
     question = StringField("question", validators=[
         DataRequired("提问的问题不能为空")
     ])
+
+class ConversationMessagesSchema(FlaskForm):
+    """获取某个会话下的所有消息"""
+    conversation_id = StringField("conversation_id", validators=[
+        DataRequired("会话id必传")
+    ])

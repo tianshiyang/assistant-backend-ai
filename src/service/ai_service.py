@@ -10,10 +10,12 @@ import time
 
 from flask import current_app
 
+from config.db_config import db
 from entities.chat_response_entity import ChatResponseType, ChatResponseEntity
 from entities.redis_entity import REDIS_CHAT_GENERATED_KEY
 from model.conversation import Conversation
-from schema.ai_schema import AIChatSchema
+from model.message import Message
+from schema.ai_schema import AIChatSchema, ConversationMessagesSchema
 from task import run_ai_chat_task
 from typing import Generator
 
@@ -97,3 +99,12 @@ def ai_chat_service(req: AIChatSchema, user_id: str, conversation_id: str, is_ne
         skills=skills,
         is_new_conversation=is_new_conversation,
     )
+
+def ai_chat_get_conversation_messages_service(req: ConversationMessagesSchema, user_id: str) -> list[Message]:
+    """获取所有聊天内容"""
+    return db.session.query(Message).filter(
+        Message.conversation_id == req.conversation_id.data,
+        Message.user_id == user_id
+    ).order_by(
+        Message.created_at.desc()
+    ).all()

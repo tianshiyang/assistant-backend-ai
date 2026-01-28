@@ -5,11 +5,13 @@
 @Author  : tianshiyang
 @File    : ai_handler.py
 """
-from flask import Response, stream_with_context
+from flask import Response, stream_with_context, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
-from schema.ai_schema import AIChatSchema
-from service.ai_service import ai_chat_service, ai_create_conversation_service, event_stream_service
+from pkg.response import validate_error_json, success_json
+from schema.ai_schema import AIChatSchema, ConversationMessagesSchema
+from service.ai_service import ai_chat_service, ai_create_conversation_service, event_stream_service, \
+    ai_chat_get_conversation_messages_service
 
 
 @jwt_required()
@@ -31,3 +33,15 @@ def ai_chat_handler():
         stream_with_context(event_stream_service(conversation_id=conversation_id)),
         mimetype="text/event-stream"
     )
+
+@jwt_required()
+def ai_chat_get_conversation_messages_handler():
+    req = ConversationMessagesSchema(request.args)
+    if not req.validate():
+        return validate_error_json(req.errors)
+    user_id = get_jwt_identity()
+    resp = ai_chat_get_conversation_messages_service(req=req, user_id=user_id)
+    result = []
+    for message in resp:
+        result.append(message.to_dict())
+    return success_json(result)
