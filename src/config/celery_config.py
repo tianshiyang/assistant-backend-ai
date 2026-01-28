@@ -18,13 +18,19 @@ def config_celery_logging(**kwargs):
 
 
 def _build_redis_url(db: int) -> str:
-    """从 .env 中的 Redis 连接信息 + 指定 DB 号拼出 Celery 用的 Redis URL。"""
+    """
+    从 .env 中的 Redis 连接信息 + 指定 DB 号拼出 Celery 用的 Redis URL。
+    
+    企业级最佳实践：
+    - 只使用 password 认证（requirepass）
+    - 不使用 username，避免 ACL 认证错误
+    - URL 格式：redis://:password@host:port/db
+    """
     host = os.getenv("REDIS_HOST", "localhost")
     port = os.getenv("REDIS_PORT", "6379")
-    username = os.getenv("REDIS_USERNAME") or ""
-    password = os.getenv("REDIS_PASSWORD") or ""
-    # user_part = f"{quote_plus(username)}:{quote_plus(password)}"
-    return f"redis://:{password}@{host}:{port}/{db}"
+    password = os.getenv("REDIS_PASSWORD", "")
+    # 只使用 password 认证，格式：redis://:password@host:port/db
+    return f"redis://:{quote_plus(password)}@{host}:{port}/{db}"
 
 
 def init_celery_config(app: Flask) -> Celery:

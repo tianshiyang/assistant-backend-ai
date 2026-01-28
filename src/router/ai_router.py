@@ -7,7 +7,7 @@
 """
 from flask import Blueprint
 
-from handler.ai_handler import ai_chat_handler, ai_create_conversation_handler
+from handler.ai_handler import ai_chat_handler
 
 ai_blueprint = Blueprint("chat", __name__, url_prefix="")
 

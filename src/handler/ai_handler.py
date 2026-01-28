@@ -5,11 +5,11 @@
 @Author  : tianshiyang
 @File    : ai_handler.py
 """
+from flask import Response, stream_with_context
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
-from pkg.response import success_message
 from schema.ai_schema import AIChatSchema
-from service.ai_service import ai_chat_service, ai_create_conversation_service
+from service.ai_service import ai_chat_service, ai_create_conversation_service, event_stream_service
 
 
 @jwt_required()
@@ -27,4 +27,7 @@ def ai_chat_handler():
         conversation_id=conversation_id,
         is_new_conversation = req.conversation_id.data is None,
     )
-    return success_message("成功")
+    return Response(
+        stream_with_context(event_stream_service(conversation_id=conversation_id)),
+        mimetype="text/event-stream"
+    )

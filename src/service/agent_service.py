@@ -81,7 +81,7 @@ class AgentService:
     def _update_chunk_to_redis(self, payload: ChatResponseEntity) -> None:
         """更新流内容到redis中"""
         redis_key = REDIS_CHAT_GENERATED_KEY.format(conversation_id=self.conversation_id)
-        self._redis.set(redis_key, json.dumps(payload))
+        self._redis.rpush(redis_key, json.dumps(payload))
 
 
     def _handle_stream_chunks(self, chunks: Iterator[dict[str, Any] | Any]) -> None:
@@ -122,6 +122,7 @@ class AgentService:
                             tool_call=None
                         ))
                 elif msg_type == "ToolMessage":
+                    print(f"工具调用message_chunk：{message_chunk}")
                     self._update_chunk_to_redis(ChatResponseEntity(
                         updated_time=time.time(),
                         content=message_chunk.content,

@@ -36,13 +36,5 @@ def run_ai_chat_task(
         is_new_conversation=is_new_conversation
     )
     agent_service.build_agent()
-    # stream() 方法内部会在完成后自动关闭连接，但使用 with 语句提供双重保障
-    # chunks = agent_service.stream()
-
-    # 消费生成器，确保所有数据都被处理
-    # stream() 方法内部已经处理了所有逻辑，这里只需要确保迭代完成
-    # for chunk in chunks:
-    #     # chunk 已经被 stream() 方法内部处理，这里可以添加额外的处理逻辑
-    #     pass
 
     logger.info(f"AI生成任务完成，用户ID: {user_id}, 会话ID: {conversation_id}")
