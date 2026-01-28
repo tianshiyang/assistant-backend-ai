@@ -85,53 +85,53 @@ def dataset_search_agent_tool(question: str, dataset_ids: list[str]):
         stream_mode = "messages",
     )
 
-if __name__ == "__main__":
-    chunks = dataset_search_agent_tool.invoke({
-        "question": "电影《羞羞的铁拳》什么时候上映的",
-        "dataset_ids": ["ce949e61-4e52-4aeb-a97c-8aa77dea0f0f"],
-    })
-    # agent.stream() 返回的是迭代器，需要消费才能拿到每条消息
-    current_step = None
-    current_node = None
-    full_content = ""
-
-    # Token 统计
-    final_answer_tokens = None  # 最终答案阶段的 token 统计
-    for chunk in chunks:
-        if isinstance(chunk, tuple) and len(chunk) == 2:
-            message_chunk, metadata = chunk
-            # 获取langgraph信息
-            step = metadata.get("langgraph_step", 'N/A')
-            node = metadata.get('langgraph_node', 'N/A')
-            if current_node != step and current_step != step:
-                if current_step is not None:
-                    print()  # 换行
-                print(f"\n【步骤 {step} - 节点: {node}】")
-                current_step = step
-                current_node = node
-
-            # 根据消息类型处理
-            msg_type = message_chunk.__class__.__name__
-            if msg_type == "AIMessageChunk":
-                if hasattr(message_chunk, "tool_calls") and message_chunk.tool_calls:
-                    print(f"  → AI 决定调用工具: {message_chunk.tool_calls[0]['name']}")
-                    print(f"  → 工具参数: {message_chunk.tool_calls[0]['args']}")
-                elif hasattr(message_chunk, 'content') and message_chunk.content:
-                    # 实时打印内容（打字机效果）
-                    print(message_chunk.content, end="", flush=True)
-                    full_content += message_chunk.content
-            elif msg_type == "ToolMessage":
-                print(f"\n  → 工具执行结果: {message_chunk.content}")
-                print(f"  → 工具名称: {message_chunk.name}")
-
-            # 检查是否有 usage_metadata（token 统计），最后一个chunk内容为'',并且有usage_metadata字段
-            if hasattr(message_chunk, "usage_metadata") and message_chunk.usage_metadata:
-                usage = message_chunk.usage_metadata
-                # 判断是工具调用阶段还是最终答案阶段
-                finish_reason = message_chunk.response_metadata.get('finish_reason', '') if hasattr(message_chunk,
-                                                                                                    'response_metadata') else ''
-                # 最终答案阶段的 token 统计
-                final_answer_tokens = usage
-    print(
-        f"  → [最终答案阶段] Token 使用: 输入={final_answer_tokens.get('input_tokens')}, 输出={final_answer_tokens.get("output_tokens")}, 总计={final_answer_tokens.get('total_tokens')}")
-
+# if __name__ == "__main__":
+#     chunks = dataset_search_agent_tool.invoke({
+#         "question": "电影《羞羞的铁拳》什么时候上映的",
+#         "dataset_ids": ["ce949e61-4e52-4aeb-a97c-8aa77dea0f0f"],
+#     })
+#     # agent.stream() 返回的是迭代器，需要消费才能拿到每条消息
+#     current_step = None
+#     current_node = None
+#     full_content = ""
+#
+#     # Token 统计
+#     final_answer_tokens = None  # 最终答案阶段的 token 统计
+#     for chunk in chunks:
+#         if isinstance(chunk, tuple) and len(chunk) == 2:
+#             message_chunk, metadata = chunk
+#             # 获取langgraph信息
+#             step = metadata.get("langgraph_step", 'N/A')
+#             node = metadata.get('langgraph_node', 'N/A')
+#             if current_node != step and current_step != step:
+#                 if current_step is not None:
+#                     print()  # 换行
+#                 print(f"\n【步骤 {step} - 节点: {node}】")
+#                 current_step = step
+#                 current_node = node
+#
+#             # 根据消息类型处理
+#             msg_type = message_chunk.__class__.__name__
+#             if msg_type == "AIMessageChunk":
+#                 if hasattr(message_chunk, "tool_calls") and message_chunk.tool_calls:
+#                     print(f"  → AI 决定调用工具: {message_chunk.tool_calls[0]['name']}")
+#                     print(f"  → 工具参数: {message_chunk.tool_calls[0]['args']}")
+#                 elif hasattr(message_chunk, 'content') and message_chunk.content:
+#                     # 实时打印内容（打字机效果）
+#                     print(message_chunk.content, end="", flush=True)
+#                     full_content += message_chunk.content
+#             elif msg_type == "ToolMessage":
+#                 print(f"\n  → 工具执行结果: {message_chunk.content}")
+#                 print(f"  → 工具名称: {message_chunk.name}")
+#
+#             # 检查是否有 usage_metadata（token 统计），最后一个chunk内容为'',并且有usage_metadata字段
+#             if hasattr(message_chunk, "usage_metadata") and message_chunk.usage_metadata:
+#                 usage = message_chunk.usage_metadata
+#                 # 判断是工具调用阶段还是最终答案阶段
+#                 finish_reason = message_chunk.response_metadata.get('finish_reason', '') if hasattr(message_chunk,
+#                                                                                                     'response_metadata') else ''
+#                 # 最终答案阶段的 token 统计
+#                 final_answer_tokens = usage
+#     print(
+#         f"  → [最终答案阶段] Token 使用: 输入={final_answer_tokens.get('input_tokens')}, 输出={final_answer_tokens.get("output_tokens")}, 总计={final_answer_tokens.get('total_tokens')}")
+#
