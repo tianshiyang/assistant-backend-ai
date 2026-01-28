@@ -66,8 +66,9 @@ def init_celery_config(app: Flask) -> Celery:
         def __call__(self, *args: object, **kwargs: object) -> object:
             with app.app_context():
                 # 清理可能已过期的数据库连接，确保使用新的有效连接
+                from config.db_config import db
                 try:
-                    from config.db_config import db
+
                     # 移除过期的 session，强制使用连接池中的新连接
                     db.session.remove()
                 except Exception:
