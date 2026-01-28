@@ -41,11 +41,18 @@ class Message(BaseModel):
         comment="用户提问的问题",
     )
 
-    content: Mapped[str] = mapped_column(
+    messages: Mapped[str] = mapped_column(
         Text,
         nullable=False,
         default=text("'[]'::jsonb"),
-        comment="AI返回的内容",
+        comment="AI相应的内容（流式输出的每个chunk）",
+    )
+
+    answer: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        default=text(''),
+        comment="AI回复的内容"
     )
 
     input_tokens: Mapped[int] = mapped_column(

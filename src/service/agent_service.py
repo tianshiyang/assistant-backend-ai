@@ -72,6 +72,7 @@ class AgentService:
             "output_tokens": 0,
             "total_tokens": 0,
         }
+        self._ai_full_answer = ""
         self._redis = current_app.redis_stream
         self._ai_chunks = [] # AI输出的内容
         self._build_tools(skills)
@@ -132,8 +133,8 @@ class AgentService:
                             type=ChatResponseType.GENERATE,
                             tool_call=None
                         ))
+                        self._ai_full_answer += message_chunk.content
                 elif msg_type == "ToolMessage":
-                    print(f"工具调用message_chunk：{message_chunk}")
                     self._update_chunk_to_redis(ChatResponseEntity(
                         updated_time=time.time(),
                         content=message_chunk.content,
@@ -175,7 +176,8 @@ class AgentService:
             conversation_id=self.conversation_id,
             user_id=self.user_id,
             question=self.question,
-            content=json.dumps(self._ai_chunks),
+            messages=json.dumps(self._ai_chunks),
+            answer=self._ai_full_answer,
             input_tokens=self._token_dict.get("input_tokens"),
             output_tokens=self._token_dict.get("output_tokens"),
             total_tokens=self._token_dict.get("total_tokens"),
