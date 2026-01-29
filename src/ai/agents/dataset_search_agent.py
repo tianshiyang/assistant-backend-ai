@@ -75,15 +75,19 @@ def dataset_search_agent_tool(question: str, dataset_ids: list[str]):
         name="dataset_search_agent",
         system_prompt=DATASET_SEARCH_RAG_PROMPT,
     )
-    return agent.stream(
-        {
-            "messages": [HumanMessage(question)],
-        },
-        context=Context(
-            dataset_ids=dataset_ids,
-        ),
-        stream_mode = "messages",
-    )
+    try:
+        agent_result = agent.invoke(
+            {
+                "messages": [HumanMessage(question)],
+            },
+            context=Context(
+                dataset_ids=dataset_ids,
+            ),
+        )
+        return agent_result["messages"][-1].content
+    except Exception as e:
+        return f"知识库检索出错，出错原因{e}"
+
 
 # if __name__ == "__main__":
 #     chunks = dataset_search_agent_tool.invoke({

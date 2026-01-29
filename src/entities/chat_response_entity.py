@@ -35,15 +35,16 @@ class ChatResponseType(str, Enum):
 class ChatResponseEntity(TypedDict):
     updated_time: float
     content: Any
+    message_id: str
     type: ChatResponseType # AI返回的内容类型
     tool_call: Skills | None
 
-if __name__ == "__main__":
-    result = ChatResponseEntity(
-        updated_time=123123,
-        content=json.dumps({"name": "张三"}),
-        type = ChatResponseType.PING,
-        tool_call=Skills.DATASET_RETRIEVER
-    )
-
-    print(type(json.dumps(result)), json.dumps(result))
+# if __name__ == "__main__":
+#     result = ChatResponseEntity(
+#         updated_time=123123,
+#         content=json.dumps({"name": "张三"}),
+#         type = ChatResponseType.PING,
+#         tool_call=Skills.DATASET_RETRIEVER
+#     )
+#
+#     print(type(json.dumps(result)), json.dumps(result))

@@ -24,6 +24,7 @@ from langgraph.checkpoint.postgres import PostgresSaver
 
 from entities.chat_response_entity import ChatResponseEntity, ChatResponseType
 from entities.redis_entity import REDIS_CHAT_GENERATED_KEY
+from model.message import Message
 from service.message_service import create_message_service
 from utils import get_module_logger
 
@@ -65,6 +66,7 @@ class AgentService:
         self.conversation_id = conversation_id
         self.is_new_conversation = is_new_conversation
         self._tools = []
+        self._message: Message | None = None # 消息实例
         self._checkpointer_context = None  # PostgresSaver 上下文管理器
         self._checkpointer = None  # PostgresSaver 实例
         self._token_dict = {
@@ -100,36 +102,40 @@ class AgentService:
         """处理stream流"""
         final_answer_tokens = None  # 最终答案阶段的 token 统计
 
+
         if self.is_new_conversation:
             # 保存conversation_id并发送给前端
             self._update_chunk_to_redis(ChatResponseEntity(
                 updated_time=time.time(),
                 content=self.conversation_id,
                 type=ChatResponseType.CREATE_CONVERSATION,
-                tool_call=None
+                tool_call=None,
+                message_id=str(self._message.id)
             ))
+        # 创建一条消息，用于获取当前消息的message_id
+        self._create_messages()
 
         for chunk in chunks:
             if isinstance(chunk, tuple) and len(chunk) == 2:
                 message_chunk, metadata = chunk
-
                 # 根据消息类型处理
                 msg_type = message_chunk.__class__.__name__
                 if msg_type == "AIMessageChunk":
-                    if hasattr(message_chunk, "tool_calls") and message_chunk.tool_calls:
+                    if hasattr(message_chunk, "tool_calls") and message_chunk.tool_calls and message_chunk.tool_calls[0]['name']:
                         # 工具调用
                         self._update_chunk_to_redis(ChatResponseEntity(
                             updated_time=time.time(),
                             content="",
                             type=ChatResponseType.TOOL,
+                            message_id=str(self._message.id),
                             tool_call=message_chunk.tool_calls[0]['name']
                         ))
                     elif hasattr(message_chunk, 'content') and message_chunk.content:
-                        # 实时打印内容（打字机效果）
                         # 保存AI输出内容
                         self._update_chunk_to_redis(ChatResponseEntity(
                             updated_time=time.time(),
                             content=message_chunk.content,
+                            message_id=str(self._message.id),
                             type=ChatResponseType.GENERATE,
                             tool_call=None
                         ))
@@ -139,6 +145,7 @@ class AgentService:
                         updated_time=time.time(),
                         content=message_chunk.content,
                         type=ChatResponseType.TOOL_RESULT,
+                        message_id=str(self._message.id),
                         tool_call=None
                     ))
 
@@ -158,6 +165,7 @@ class AgentService:
                 updated_time=time.time(),
                 content=self._token_dict,
                 type=ChatResponseType.SAVE_TOKEN,
+                message_id=str(self._message.id),
                 tool_call=None
             ))
 
@@ -165,16 +173,29 @@ class AgentService:
             updated_time=time.time(),
             content="",
             type=ChatResponseType.DONE,
+            message_id=str(self._message.id),
             tool_call=None
         ))
 
         logger.info(f"Agent 响应完成，会话ID: {self.conversation_id}")
 
-    def _save_messages(self):
-        """保存聊天内容到message表中"""
-        create_message_service(
+    def _create_messages(self) -> Message:
+        """创建一个一条消息"""
+        self._message = create_message_service(
             conversation_id=self.conversation_id,
             user_id=self.user_id,
+            question=self.question,
+            messages="[]",
+            answer="",
+            input_tokens=0,
+            output_tokens=0,
+            total_tokens=0,
+        )
+        return self._message
+
+    def _save_messages(self):
+        """保存聊天内容到message表中"""
+        self._message.update(
             question=self.question,
             messages=json.dumps(self._ai_chunks),
             answer=self._ai_full_answer,
@@ -208,6 +229,8 @@ class AgentService:
                 checkpointer=self._checkpointer,
             )
 
+            print(f"父工作流中的self.dataset_ids： {self.dataset_ids}")
+
             # 执行流式响应
             chunks = agent.stream(
                 {
@@ -225,13 +248,13 @@ class AgentService:
                 updated_time=time.time(),
                 content=f"生成失败，错误原因：{str(e)}",
                 type=ChatResponseType.ERROR,
+                message_id=str(self._message.id),
                 tool_call=None
             ))
             logger.error(f"Agent 处理出错，会话ID: {self.conversation_id}, 错误: {str(e)}", exc_info=True)
             raise
         finally:
             # 保存聊天内容到数据库中
-            print("self._token_dict", self._token_dict)
             self._save_messages()
             # 确保完成后关闭 PostgresSaver 连接
             self.close()
