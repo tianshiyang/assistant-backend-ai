@@ -71,8 +71,9 @@ def init_celery_config(app: Flask) -> Celery:
 
                     # 移除过期的 session，强制使用连接池中的新连接
                     db.session.remove()
-                except Exception:
+                except Exception as e:
                     # 如果 db 未初始化或出错，忽略（某些任务可能不需要数据库）
+                    print(f"db 未初始化或出错{e}")
                     pass
                 
                 try:
@@ -82,6 +83,7 @@ def init_celery_config(app: Flask) -> Celery:
                     try:
                         db.session.remove()
                     except Exception:
+                        print(f"d任务结束后清理 session{e}")
                         pass
 
     celery_app = Celery(app.name, task_cls=FlaskTask)

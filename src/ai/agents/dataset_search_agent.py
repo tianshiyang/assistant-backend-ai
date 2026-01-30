@@ -54,20 +54,23 @@ def get_dataset_search_result(
         min_score=0.8,
         expr=f"dataset_id in {runtime.context.dataset_ids}",
     )
-    print(f"dataset_id in {runtime.context.dataset_ids}, 检索到的知识库{raws}")
+    print(f"检索到的文档raws:{raws}, dataset_ids:{runtime.context.dataset_ids}")
     if not raws:
         return "（未检索到相关文档）"
     return "\n\n".join([raw.page_content for raw in raws])
 
 
 @tool
-def dataset_search_agent_tool(question: str, dataset_ids: list[str]):
+def dataset_search_agent_tool(question: str, runtime: ToolRuntime):
     """
-    获取知识库检索结果的Agent，当你需要进行知识库检索的时候，你可以调用此工具
-    :param dataset_ids: 用户选中的要检索的知识库列表
+    获取知识库检索结果的 Agent，当你需要进行知识库检索时调用此工具。
     :param question: 用户提问的问题
-    :return: 大语言模型返回的知识库问题的回答
+    :return: 大语言模型基于知识库检索后的回答
     """
+    # 从父 agent 的 context 注入 dataset_ids，保证与请求一致、不可被 LLM 篡改
+    dataset_ids = runtime.context.dataset_ids
+    if not dataset_ids:
+        return "未指定要检索的知识库，请先选择知识库。"
 
     agent = create_agent(
         model=chat_qianwen_llm,
@@ -78,12 +81,8 @@ def dataset_search_agent_tool(question: str, dataset_ids: list[str]):
     )
     try:
         agent_result = agent.invoke(
-            {
-                "messages": [HumanMessage(question)],
-            },
-            context=Context(
-                dataset_ids=dataset_ids,
-            ),
+            {"messages": [HumanMessage(content=question)]},
+            context=Context(dataset_ids=dataset_ids),
         )
         return agent_result["messages"][-1].content
     except Exception as e:
