@@ -86,7 +86,7 @@ def ai_create_conversation_service(user_id: str) -> Conversation:
     ).create()
     return conversation
 
-def ai_chat_service(req: AIChatSchema, user_id: str, conversation_id: str):
+def ai_chat_service(req: AIChatSchema, user_id: str, conversation_id: str, is_new_chat: str):
     """AI聊天"""
     from task import run_ai_chat_task  # 延迟导入，避免与 task -> agent_service -> ai_service 循环依赖
 
@@ -100,6 +100,7 @@ def ai_chat_service(req: AIChatSchema, user_id: str, conversation_id: str):
         question=question,
         dataset_ids=dataset_ids,
         skills=skills,
+        is_new_chat=is_new_chat
     )
 
 def ai_chat_get_conversation_messages_service(req: ConversationMessagesSchema, user_id: str) -> list[Message]:

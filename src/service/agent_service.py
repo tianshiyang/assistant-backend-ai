@@ -25,7 +25,6 @@ from langgraph.checkpoint.postgres import PostgresSaver
 from entities.chat_response_entity import ChatResponseEntity, ChatResponseType
 from entities.redis_entity import REDIS_CHAT_GENERATED_KEY
 from model.message import Message
-from service.ai_service import ai_create_conversation_service
 from service.message_service import create_message_service
 from utils import get_module_logger
 
@@ -49,6 +48,7 @@ class AgentService:
             conversation_id: str,
             dataset_ids: list[str],
             skills: list[Skills],
+            is_new_chat: bool
     ):
         """
         初始化 AgentService
@@ -59,7 +59,9 @@ class AgentService:
             conversation_id: 会话ID
             dataset_ids: 数据集ID列表
             skills: 技能列表
+            is_new_chat: 是否新会话
         """
+        self.is_new_chat = is_new_chat
         self.user_id = user_id
         self.dataset_ids = dataset_ids
         self.question = question
@@ -191,23 +193,18 @@ class AgentService:
         )
 
     def build_agent(self) -> None:
-        print(f"会话id=======self.conversation_id: {self.conversation_id}类型{type(self.conversation_id)}")
-        if self.conversation_id is None:
-            # 如果没传递conversation_id，则代表的是一个新的会话
-            conversation = ai_create_conversation_service(self.user_id)
-            self.conversation_id = str(conversation.id)
-            print(f"新创建了一个conversation：{self.conversation_id}")
         # 创建一条消息，用于获取当前消息的message_id
         self._create_messages()
 
-        # 保存conversation_id并返回给前端
-        self._update_chunk_to_redis(ChatResponseEntity(
-            updated_time=time.time(),
-            content=self.conversation_id,
-            type=ChatResponseType.CREATE_CONVERSATION,
-            tool_call=None,
-            message_id=str(self._message.id)
-        ))
+        if self.is_new_chat:
+            # 如果是新会话，则保存conversation_id并返回给前端
+            self._update_chunk_to_redis(ChatResponseEntity(
+                updated_time=time.time(),
+                content=self.conversation_id,
+                type=ChatResponseType.CREATE_CONVERSATION,
+                tool_call=None,
+                message_id=str(self._message.id)
+            ))
 
         """构建智能体并执行流式响应"""
         db_uri = os.getenv("POSTGRES_SHOT_MEMORY_URI")
@@ -216,8 +213,6 @@ class AgentService:
         self._checkpointer = self._checkpointer_context.__enter__()
 
         try:
-            logger.info(f"开始构建 Agent，会话ID: {self.conversation_id}")
-
             # 创建 agent
             agent = create_agent(
                 model=chat_qianwen_llm,
@@ -248,7 +243,6 @@ class AgentService:
             self._save_messages()
 
         except Exception as e:
-            print(e)
             self._update_chunk_to_redis(ChatResponseEntity(
                 updated_time=time.time(),
                 content=f"生成失败，错误原因：{str(e)}",
@@ -268,7 +262,6 @@ class AgentService:
             try:
                 # 调用上下文管理器的 __exit__ 方法关闭连接
                 self._checkpointer_context.__exit__(None, None, None)
-                logger.info(f"PostgresSaver 连接已关闭，会话ID: {self.conversation_id}")
             except Exception as e:
                 logger.error(
                     f"关闭 PostgresSaver 连接时出错，会话ID: {self.conversation_id}, 错误: {str(e)}",

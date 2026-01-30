@@ -21,17 +21,17 @@ def run_ai_chat_task(
         question: str,
         dataset_ids: list[str],
         skills: list[Skills],
+        is_new_chat: bool
 ):
     """执行 AI 聊天任务"""
-    logger.info(f"开始执行AI生成任务，用户ID: {user_id}, 会话ID: {conversation_id}")
-    
-    # 使用上下文管理器确保资源正确释放（即使出错也会关闭连接）
+    # 使用上下文管理器确保资源正确释放
     agent_service = AgentService(
         user_id=user_id,
         conversation_id=conversation_id,
         question=question,
         dataset_ids=dataset_ids,
         skills=skills,
+        is_new_chat=is_new_chat
     )
     agent_service.build_agent()
 
