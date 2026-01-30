@@ -42,7 +42,7 @@ def event_stream_service(conversation_id: str) -> Generator:
                     chunk = json.loads(chunk_json)
                     if chunk['updated_time'] > last_ts:
                         last_ts = chunk['updated_time']
-                        yield f"event:message\ndata: {json.dumps(chunk)}\n\n"
+                        yield f"event:message\ndata: {json.dumps(chunk, ensure_ascii=False)}\n\n"
                     
                     # 检查是否完成或出错
                     if chunk["type"] in (ChatResponseType.DONE.value, ChatResponseType.ERROR.value):
@@ -59,9 +59,10 @@ def event_stream_service(conversation_id: str) -> Generator:
                     updated_time=time.time(),
                     content="",
                     type=ChatResponseType.PING,
+                    message_id="",
                     tool_call=None
                 )
-                yield f"event:message\ndata: {json.dumps(message)}\n\n"
+                yield f"event:message\ndata: {json.dumps(message, ensure_ascii=False)}\n\n"
                 last_ts = time.time()
     except Exception as e:
         # 如果发生异常，发送错误消息并退出
@@ -69,9 +70,10 @@ def event_stream_service(conversation_id: str) -> Generator:
             updated_time=time.time(),
             content=f"流式响应错误: {str(e)}",
             type=ChatResponseType.ERROR,
+            message_id="",
             tool_call=None
         )
-        yield f"event:message\ndata: {json.dumps(error_message)}\n\n"
+        yield f"event:message\ndata: {json.dumps(error_message, ensure_ascii=False)}\n\n"
     finally:
         redis_stream.delete(redis_key)
 
@@ -91,13 +93,6 @@ def ai_chat_service(req: AIChatSchema, user_id: str, conversation_id: str):
     skills = req.skills.data
     question = req.question.data
     dataset_ids = req.dataset_ids.data
-
-    print(f"skills:", skills)
-    print(f"question:", question)
-    print(f"dataset_ids:", dataset_ids)
-    print("==="*20)
-    print(question)
-    print(dataset_ids)
 
     run_ai_chat_task.delay(
         user_id=user_id,

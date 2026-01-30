@@ -93,7 +93,7 @@ class AgentService:
             # 保存AI输出的内容，不保存创建会话的chunk
             self._ai_chunks.append(payload)
         redis_key = REDIS_CHAT_GENERATED_KEY.format(conversation_id=self.conversation_id)
-        self._redis.rpush(redis_key, json.dumps(payload))
+        self._redis.rpush(redis_key, json.dumps(payload, ensure_ascii=False))
 
 
     def _handle_stream_chunks(self, chunks: Iterator[dict[str, Any] | Any]) -> None:
