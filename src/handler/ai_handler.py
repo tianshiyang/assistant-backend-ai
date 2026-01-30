@@ -19,11 +19,9 @@ def ai_chat_handler():
     req = AIChatSchema()
     """与AI聊天对话"""
     user_id = get_jwt_identity()
-    conversation_id = str(req.conversation_id.data)
-    if req.conversation_id.data is None:
-        # 如果没传递conversation_id，则代表的是一个新的会话
-        conversation = ai_create_conversation_service(user_id)
-        conversation_id = str(conversation.id)
+    conversation_id = req.conversation_id.data
+
+    print("conversation的类型",conversation_id, type(conversation_id))
     ai_chat_service(
         req=req,
         user_id=user_id,

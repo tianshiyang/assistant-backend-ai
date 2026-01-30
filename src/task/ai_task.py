@@ -21,7 +21,6 @@ def run_ai_chat_task(
         question: str,
         dataset_ids: list[str],
         skills: list[Skills],
-        is_new_conversation: bool = False
 ):
     """执行 AI 聊天任务"""
     logger.info(f"开始执行AI生成任务，用户ID: {user_id}, 会话ID: {conversation_id}")

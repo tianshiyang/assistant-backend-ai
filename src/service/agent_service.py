@@ -25,6 +25,7 @@ from langgraph.checkpoint.postgres import PostgresSaver
 from entities.chat_response_entity import ChatResponseEntity, ChatResponseType
 from entities.redis_entity import REDIS_CHAT_GENERATED_KEY
 from model.message import Message
+from service.ai_service import ai_create_conversation_service
 from service.message_service import create_message_service
 from utils import get_module_logger
 
@@ -89,9 +90,9 @@ class AgentService:
 
     def _update_chunk_to_redis(self, payload: ChatResponseEntity) -> None:
         """更新流内容到redis中"""
-        if payload["type"] != ChatResponseType.CREATE_CONVERSATION:
-            # 保存AI输出的内容，不保存创建会话的chunk
-            self._ai_chunks.append(payload)
+        # 保存AI输出的内容
+        self._ai_chunks.append(payload)
+
         redis_key = REDIS_CHAT_GENERATED_KEY.format(conversation_id=self.conversation_id)
         self._redis.rpush(redis_key, json.dumps(payload, ensure_ascii=False))
 
@@ -190,9 +191,16 @@ class AgentService:
         )
 
     def build_agent(self) -> None:
+        print(f"会话id=======self.conversation_id: {self.conversation_id}类型{type(self.conversation_id)}")
+        if self.conversation_id is None:
+            # 如果没传递conversation_id，则代表的是一个新的会话
+            conversation = ai_create_conversation_service(self.user_id)
+            self.conversation_id = str(conversation.id)
+            print(f"新创建了一个conversation：{self.conversation_id}")
         # 创建一条消息，用于获取当前消息的message_id
         self._create_messages()
-        # 保存conversation_id并发送给前端
+
+        # 保存conversation_id并返回给前端
         self._update_chunk_to_redis(ChatResponseEntity(
             updated_time=time.time(),
             content=self.conversation_id,
@@ -225,8 +233,6 @@ class AgentService:
                 checkpointer=self._checkpointer,
             )
 
-            print(f"父工作流中的self.dataset_ids： {self.dataset_ids}")
-
             # 执行流式响应
             chunks = agent.stream(
                 {
@@ -242,11 +248,12 @@ class AgentService:
             self._save_messages()
 
         except Exception as e:
+            print(e)
             self._update_chunk_to_redis(ChatResponseEntity(
                 updated_time=time.time(),
                 content=f"生成失败，错误原因：{str(e)}",
                 type=ChatResponseType.ERROR,
-                message_id=str(self._message.id),
+                message_id=str(self._message.id) if self._message else '',
                 tool_call=None
             ))
             logger.error(f"Agent 处理出错，会话ID: {self.conversation_id}, 错误: {str(e)}", exc_info=True)
