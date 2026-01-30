@@ -33,7 +33,6 @@ def run_ai_chat_task(
         question=question,
         dataset_ids=dataset_ids,
         skills=skills,
-        is_new_conversation=is_new_conversation
     )
     agent_service.build_agent()
 

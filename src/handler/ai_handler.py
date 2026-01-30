@@ -21,13 +21,12 @@ def ai_chat_handler():
     user_id = get_jwt_identity()
     conversation_id = req.conversation_id.data
     if req.conversation_id.data is None:
-        # 新任务
+        # 如果没传递conversation_id，则代表的是一个新的会话
         conversation_id = ai_create_conversation_service(user_id).id
     ai_chat_service(
         req=req,
         user_id=user_id,
         conversation_id=conversation_id,
-        is_new_conversation = req.conversation_id.data is None,
     )
     return Response(
         stream_with_context(event_stream_service(conversation_id=conversation_id)),

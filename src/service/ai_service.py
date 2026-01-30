@@ -16,7 +16,6 @@ from entities.redis_entity import REDIS_CHAT_GENERATED_KEY
 from model.conversation import Conversation
 from model.message import Message
 from schema.ai_schema import AIChatSchema, ConversationMessagesSchema
-from task import run_ai_chat_task
 from typing import Generator
 
 def event_stream_service(conversation_id: str) -> Generator:
@@ -85,11 +84,20 @@ def ai_create_conversation_service(user_id: str) -> Conversation:
     ).create()
     return conversation
 
-def ai_chat_service(req: AIChatSchema, user_id: str, conversation_id: str, is_new_conversation: bool):
+def ai_chat_service(req: AIChatSchema, user_id: str, conversation_id: str):
     """AI聊天"""
+    from task import run_ai_chat_task  # 延迟导入，避免与 task -> agent_service -> ai_service 循环依赖
+
     skills = req.skills.data
     question = req.question.data
     dataset_ids = req.dataset_ids.data
+
+    print(f"skills:", skills)
+    print(f"question:", question)
+    print(f"dataset_ids:", dataset_ids)
+    print("==="*20)
+    print(question)
+    print(dataset_ids)
 
     run_ai_chat_task.delay(
         user_id=user_id,
@@ -97,7 +105,6 @@ def ai_chat_service(req: AIChatSchema, user_id: str, conversation_id: str, is_ne
         question=question,
         dataset_ids=dataset_ids,
         skills=skills,
-        is_new_conversation=is_new_conversation,
     )
 
 def ai_chat_get_conversation_messages_service(req: ConversationMessagesSchema, user_id: str) -> list[Message]:

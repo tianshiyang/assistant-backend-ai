@@ -48,7 +48,6 @@ class AgentService:
             conversation_id: str,
             dataset_ids: list[str],
             skills: list[Skills],
-            is_new_conversation: bool = False,
     ):
         """
         初始化 AgentService
@@ -64,7 +63,6 @@ class AgentService:
         self.dataset_ids = dataset_ids
         self.question = question
         self.conversation_id = conversation_id
-        self.is_new_conversation = is_new_conversation
         self._tools = []
         self._message: Message | None = None # 消息实例
         self._checkpointer_context = None  # PostgresSaver 上下文管理器
@@ -101,19 +99,6 @@ class AgentService:
     def _handle_stream_chunks(self, chunks: Iterator[dict[str, Any] | Any]) -> None:
         """处理stream流"""
         final_answer_tokens = None  # 最终答案阶段的 token 统计
-
-
-        if self.is_new_conversation:
-            # 保存conversation_id并发送给前端
-            self._update_chunk_to_redis(ChatResponseEntity(
-                updated_time=time.time(),
-                content=self.conversation_id,
-                type=ChatResponseType.CREATE_CONVERSATION,
-                tool_call=None,
-                message_id=str(self._message.id)
-            ))
-        # 创建一条消息，用于获取当前消息的message_id
-        self._create_messages()
 
         for chunk in chunks:
             if isinstance(chunk, tuple) and len(chunk) == 2:
@@ -205,6 +190,17 @@ class AgentService:
         )
 
     def build_agent(self) -> None:
+        # 创建一条消息，用于获取当前消息的message_id
+        self._create_messages()
+        # 保存conversation_id并发送给前端
+        self._update_chunk_to_redis(ChatResponseEntity(
+            updated_time=time.time(),
+            content=self.conversation_id,
+            type=ChatResponseType.CREATE_CONVERSATION,
+            tool_call=None,
+            message_id=str(self._message.id)
+        ))
+
         """构建智能体并执行流式响应"""
         db_uri = os.getenv("POSTGRES_SHOT_MEMORY_URI")
 
@@ -242,6 +238,8 @@ class AgentService:
             )
             # 处理stream流
             self._handle_stream_chunks(chunks=chunks)
+            # 保存聊天内容到数据库中
+            self._save_messages()
 
         except Exception as e:
             self._update_chunk_to_redis(ChatResponseEntity(
@@ -254,8 +252,6 @@ class AgentService:
             logger.error(f"Agent 处理出错，会话ID: {self.conversation_id}, 错误: {str(e)}", exc_info=True)
             raise
         finally:
-            # 保存聊天内容到数据库中
-            self._save_messages()
             # 确保完成后关闭 PostgresSaver 连接
             self.close()
 
