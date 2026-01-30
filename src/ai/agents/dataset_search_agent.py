@@ -54,6 +54,7 @@ def get_dataset_search_result(
         min_score=0.8,
         expr=f"dataset_id in {runtime.context.dataset_ids}",
     )
+    print(f"dataset_id in {runtime.context.dataset_ids}, 检索到的知识库{raws}")
     if not raws:
         return "（未检索到相关文档）"
     return "\n\n".join([raw.page_content for raw in raws])
