@@ -83,6 +83,7 @@ class AgentService:
 
     def _build_tools(self, skills: list[Skills]) -> None:
         """构建工具列表"""
+        logger.info(f"工具skill: {skills} tool_entity： {tool_entity}")
         for skill in skills:
             tool = tool_entity.get(skill)
             if tool:
@@ -213,6 +214,7 @@ class AgentService:
         self._checkpointer_context = PostgresSaver.from_conn_string(db_uri)
         self._checkpointer = self._checkpointer_context.__enter__()
 
+        logger.info(f"agent中，可以使用的工具是：{self._tools}")
         try:
             # 创建 agent
             agent = create_agent(
@@ -226,6 +228,7 @@ class AgentService:
                         summary_prompt=SUMMARIZATION_MIDDLEWARE_PROMPT
                     )
                 ],
+                # system_prompt="",
                 checkpointer=self._checkpointer,
             )
 
