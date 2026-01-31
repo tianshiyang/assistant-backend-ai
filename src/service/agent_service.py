@@ -194,6 +194,7 @@ class AgentService:
 
     def build_agent(self) -> None:
         # 创建一条消息，用于获取当前消息的message_id
+        logger.info(f"agent中收到的ID: {self.conversation_id}")
         self._create_messages()
 
         if self.is_new_chat:

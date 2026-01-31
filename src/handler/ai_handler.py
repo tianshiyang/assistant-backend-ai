@@ -24,11 +24,13 @@ def ai_chat_handler():
     user_id = get_jwt_identity()
     conversation_id = req.conversation_id.data
 
-    is_new_chat = conversation_id is None
-    if conversation_id is None:
+    is_new_chat = conversation_id is None or not conversation_id
+    if is_new_chat:
         # 如果没传递conversation_id，则代表的是一个新的会话
         conversation = ai_create_conversation_service(user_id)
         conversation_id = str(conversation.id)
+
+    logger.info(f"是否是新的会话：{is_new_chat}, 新的{conversation_id}")
 
     ai_chat_service(
         req=req,

@@ -109,5 +109,5 @@ def ai_chat_get_conversation_messages_service(req: ConversationMessagesSchema, u
         Message.conversation_id == req.conversation_id.data,
         Message.user_id == user_id
     ).order_by(
-        Message.created_at.desc()
+        Message.created_at.asc()
     ).all()

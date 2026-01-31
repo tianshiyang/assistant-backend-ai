@@ -14,7 +14,9 @@ from langgraph.prebuilt import ToolRuntime
 from pydantic import BaseModel
 from ai import chat_qianwen_llm
 from service.milvus_database_service import get_retriever_with_scores
+from utils import get_module_logger
 
+logger = get_module_logger(__name__)
 
 class Context(BaseModel):
     dataset_ids: list[str]
@@ -54,7 +56,7 @@ def get_dataset_search_result(
         min_score=0.8,
         expr=f"dataset_id in {runtime.context.dataset_ids}",
     )
-    print(f"检索到的文档raws:{raws}, dataset_ids:{runtime.context.dataset_ids}")
+    logger.info(f"检索到的文档raws:{raws}, dataset_ids:{runtime.context.dataset_ids}")
     if not raws:
         return "（未检索到相关文档）"
     return "\n\n".join([raw.page_content for raw in raws])
