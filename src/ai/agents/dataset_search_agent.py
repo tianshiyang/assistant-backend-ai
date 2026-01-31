@@ -53,10 +53,14 @@ def get_dataset_search_result(
     """
     raws = get_retriever_with_scores(
         query=question,
+        k=20,
         min_score=0.8,
+        dense_weight=0.7,  # 语义相似度权重（对于这类问题可以调高）
+        sparse_weight=0.3,  # 关键词匹配权重
+        final_k=5,  # 最终返回前5个最相关的结果
         expr=f"dataset_id in {runtime.context.dataset_ids}",
     )
-    logger.info(f"检索到的文档raws:{raws}, dataset_ids:{runtime.context.dataset_ids}")
+    logger.info(f"检索到的文档raws:{raws}, 用户的问题：{question}, expr: dataset_id in {runtime.context.dataset_ids}")
     if not raws:
         return "（未检索到相关文档）"
     return "\n\n".join([raw.page_content for raw in raws])

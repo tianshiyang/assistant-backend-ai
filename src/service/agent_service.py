@@ -19,7 +19,7 @@ from pydantic import BaseModel
 
 from ai import chat_qianwen_llm
 from ai.agents import dataset_search_agent_tool
-from entities.ai import Skills, SUMMARIZATION_MIDDLEWARE_PROMPT
+from entities.ai import Skills, SUMMARIZATION_MIDDLEWARE_PROMPT, PARENT_AGENT_PROMPT
 from langgraph.checkpoint.postgres import PostgresSaver
 
 from entities.chat_response_entity import ChatResponseEntity, ChatResponseType
@@ -195,7 +195,6 @@ class AgentService:
 
     def build_agent(self) -> None:
         # 创建一条消息，用于获取当前消息的message_id
-        logger.info(f"agent中收到的ID: {self.conversation_id}")
         self._create_messages()
 
         if self.is_new_chat:
@@ -228,7 +227,7 @@ class AgentService:
                         summary_prompt=SUMMARIZATION_MIDDLEWARE_PROMPT
                     )
                 ],
-                # system_prompt="",
+                system_prompt=PARENT_AGENT_PROMPT,
                 checkpointer=self._checkpointer,
             )
 
