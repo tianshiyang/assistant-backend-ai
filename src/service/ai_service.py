@@ -15,7 +15,8 @@ from entities.chat_response_entity import ChatResponseType, ChatResponseEntity
 from entities.redis_entity import REDIS_CHAT_GENERATED_KEY
 from model.conversation import Conversation
 from model.message import Message
-from schema.ai_schema import AIChatSchema, ConversationMessagesSchema
+from pkg.exception import FailException
+from schema.ai_schema import AIChatSchema, ConversationMessagesSchema, ConversationDeleteSchema
 from typing import Generator
 
 def event_stream_service(conversation_id: str) -> Generator:
@@ -111,3 +112,31 @@ def ai_chat_get_conversation_messages_service(req: ConversationMessagesSchema, u
     ).order_by(
         Message.created_at.asc()
     ).all()
+
+def ai_conversation_get_all_service(user_id: str) -> list[Conversation]:
+    """获取所有会话"""
+    return db.session.query(Conversation).filter(
+        Conversation.user_id == user_id
+    ).order_by(
+        Conversation.created_at.desc()
+    ).all()
+
+def ai_conversation_delete_service(req: ConversationDeleteSchema, user_id: str) -> Conversation:
+    """删除会话"""
+    conversation = db.session.query(Conversation).filter(
+        Conversation.id == req.conversation_id.data,
+        Conversation.user_id == user_id
+    ).first()
+
+    if conversation is None:
+        raise FailException("会话不存在")
+
+    # 删除会话下的所有消息
+    db.session.query(Message).filter(
+        Message.conversation_id == conversation.id,
+        Message.user_id == user_id
+    ).delete()
+    # 删除会话
+    conversation.delete()
+    return conversation
+

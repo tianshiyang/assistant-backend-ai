@@ -8,10 +8,10 @@
 from flask import Response, stream_with_context, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
-from pkg.response import validate_error_json, success_json
-from schema.ai_schema import AIChatSchema, ConversationMessagesSchema
+from pkg.response import validate_error_json, success_json, success_message
+from schema.ai_schema import AIChatSchema, ConversationMessagesSchema, ConversationDeleteSchema
 from service.ai_service import ai_chat_service, ai_create_conversation_service, event_stream_service, \
-    ai_chat_get_conversation_messages_service
+    ai_chat_get_conversation_messages_service, ai_conversation_get_all_service, ai_conversation_delete_service
 from utils import get_module_logger
 
 # 使用统一的日志记录器
@@ -54,3 +54,21 @@ def ai_chat_get_conversation_messages_handler():
     for message in resp:
         result.append(message.to_dict())
     return success_json(result)
+
+@jwt_required()
+def ai_conversation_get_all_handler():
+    """获取所有会话列表"""
+    user_id = get_jwt_identity()
+    resp = ai_conversation_get_all_service(user_id=user_id)
+    result = []
+    for message in resp:
+        result.append(message.to_dict())
+    return success_json(result)
+
+@jwt_required()
+def ai_conversation_delete_handler():
+    """删除会话"""
+    req = ConversationDeleteSchema()
+    user_id = get_jwt_identity()
+    ai_conversation_delete_service(req=req, user_id=user_id)
+    return success_message("删除成功！")
