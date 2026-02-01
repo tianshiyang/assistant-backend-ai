@@ -8,6 +8,13 @@ __pycache__/
 dist/
 build/
 
+.venv
+
+# 环境变量（含密钥，不提交）
+.env
+.env.local
+.env.*.local
+
 # IDE
 .vscode/
 .idea/
