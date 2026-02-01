@@ -33,3 +33,9 @@ class ConversationDeleteSchema(FlaskForm):
     conversation_id = StringField("conversation_id", validators=[
         DataRequired("会话id必传")
     ])
+
+class ConversationUpdateSchema(FlaskForm):
+    """总结并更新会话主题"""
+    message_id = StringField("message_id", validators=[
+        DataRequired("会话id必传")
+    ])

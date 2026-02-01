@@ -9,14 +9,22 @@ import json
 import time
 
 from flask import current_app
+from langchain.agents import create_agent
+from langchain_core.messages import HumanMessage
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import PromptTemplate
+from langchain_core.runnables import RunnableLambda
 
+from ai import chat_qianwen_llm
 from config.db_config import db
+from entities.ai import GENERATED_CONVERSATION_TITLE_PROMPT
 from entities.chat_response_entity import ChatResponseType, ChatResponseEntity
 from entities.redis_entity import REDIS_CHAT_GENERATED_KEY
 from model.conversation import Conversation
 from model.message import Message
 from pkg.exception import FailException
-from schema.ai_schema import AIChatSchema, ConversationMessagesSchema, ConversationDeleteSchema
+from schema.ai_schema import AIChatSchema, ConversationMessagesSchema, ConversationDeleteSchema, \
+    ConversationUpdateSchema
 from task import run_ai_chat_task
 from typing import Generator
 
@@ -138,4 +146,65 @@ def ai_conversation_delete_service(req: ConversationDeleteSchema, user_id: str) 
     # 删除会话
     conversation.delete()
     return conversation
+
+def get_conversation_detail_service(conversation_id: str, user_id: str) -> Conversation:
+    """获取会话详情"""
+    conversation = db.session.query(Conversation).filter(
+        Conversation.id == conversation_id,
+        Conversation.user_id == user_id
+    ).first()
+    if conversation is None:
+        raise FailException("会话不存在")
+    return conversation
+
+def update_conversation_title_service(conversation_id, user_id: str, name: str) -> Conversation:
+    """更新会话主题信息"""
+    conversation = get_conversation_detail_service(conversation_id=conversation_id, user_id=user_id)
+    conversation.update(
+        name=name
+    )
+    return conversation
+
+
+def ai_conversation_update_service(req: ConversationUpdateSchema, user_id: str) -> Conversation:
+    """根据用户问题与 AI 回复生成并更新会话主题"""
+    message = db.session.query(Message).filter(
+        Message.id == str(req.message_id.data),
+        Message.user_id == user_id
+    ).first()
+    if message is None:
+        raise FailException("会话不存在")
+
+    system_prompt = GENERATED_CONVERSATION_TITLE_PROMPT.format(
+        user_question=message.question,
+        ai_answer=message.answer,
+    )
+    agent = create_agent(
+        model=chat_qianwen_llm,
+        system_prompt=system_prompt,
+    )
+    result = agent.invoke({
+        "messages": [HumanMessage(content="请帮我生成本次回话的主题")],
+    })
+    print(result['messages'][-1].content, "result['messages'][-1].content")
+    conversation = update_conversation_title_service(
+        conversation_id=message.conversation_id,
+        user_id=user_id,
+        name=result['messages'][-1].content
+    )
+    return conversation
+
+# if __name__ == '__main__':
+#     prompt = PromptTemplate(template=GENERATED_CONVERSATION_TITLE_PROMPT, input_variables=["user_question", "ai_answer"])
+#     chain = {
+#                 "user_question": RunnableLambda(lambda x: x.get("user_question")),
+#                 "ai_answer": RunnableLambda(lambda x: x.get("ai_answer")),
+#             } |prompt | chat_qianwen_llm | StrOutputParser
+#     result = prompt.invoke({
+#         "user_question": "羞羞的铁拳中，诉讼请求是什么",
+#         "ai_answer": """电影《羞羞的铁拳》是一部喜剧片，主要讲述的是搏击选手艾迪生与体育记者马小因一场意外互换身体后发生的一系列搞笑故事。影片的核心情节围绕身份错位、打假拳、复仇与成长展开，并未涉及法律诉讼或具体的“诉讼请求”内容。
+#
+# 因此，《羞羞的铁拳》中并没有明确的“诉讼请求”这一法律概念。如果你是在比喻或引用某个具体场景，可能需要提供更多上下文。否则，从电影本身来看，该问题并不适用。""",
+#     })
+#     print(result)
 

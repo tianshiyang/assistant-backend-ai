@@ -9,9 +9,11 @@ from flask import Response, stream_with_context, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from pkg.response import validate_error_json, success_json, success_message
-from schema.ai_schema import AIChatSchema, ConversationMessagesSchema, ConversationDeleteSchema
+from schema.ai_schema import AIChatSchema, ConversationMessagesSchema, ConversationDeleteSchema, \
+    ConversationUpdateSchema
 from service.ai_service import ai_chat_service, ai_create_conversation_service, event_stream_service, \
-    ai_chat_get_conversation_messages_service, ai_conversation_get_all_service, ai_conversation_delete_service
+    ai_chat_get_conversation_messages_service, ai_conversation_get_all_service, ai_conversation_delete_service, \
+    ai_conversation_update_service
 from utils import get_module_logger
 
 # 使用统一的日志记录器
@@ -72,3 +74,13 @@ def ai_conversation_delete_handler():
     user_id = get_jwt_identity()
     ai_conversation_delete_service(req=req, user_id=user_id)
     return success_message("删除成功！")
+
+@jwt_required()
+def ai_conversation_update_handler():
+    """总结会话主题"""
+    req = ConversationUpdateSchema(request.args)
+    if not req.validate():
+        return validate_error_json(req.errors)
+    user_id = get_jwt_identity()
+    res = ai_conversation_update_service(req=req, user_id=user_id)
+    return success_json(res.to_dict())
