@@ -7,7 +7,9 @@
 """
 from flask import Blueprint
 
-from handler.ai_handler import ai_chat_handler, ai_chat_get_conversation_messages_handler, ai_conversation_get_all_handler, ai_conversation_delete_handler, ai_conversation_update_handler
+from handler.ai_handler import ai_chat_handler, ai_chat_get_conversation_messages_handler, \
+    ai_conversation_get_all_handler, ai_conversation_delete_handler, ai_conversation_update_handler, \
+    ai_conversation_maybe_question_handler
 
 ai_blueprint = Blueprint("chat", __name__, url_prefix="")
 
@@ -25,3 +27,6 @@ ai_blueprint.add_url_rule("/api/ai/conversation/messages", view_func=ai_chat_get
 
 # 获取和更新会话主题
 ai_blueprint.add_url_rule("/api/ai/conversation/update_conversation_title", view_func=ai_conversation_update_handler)
+
+# 生成本地聊天的用户可能问出的问题
+ai_blueprint.add_url_rule("/api/ai/conversation/user_maybe_question", methods=["POST"], view_func=ai_conversation_maybe_question_handler)

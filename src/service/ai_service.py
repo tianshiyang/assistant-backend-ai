@@ -17,14 +17,14 @@ from langchain_core.runnables import RunnableLambda
 
 from ai import chat_qianwen_llm
 from config.db_config import db
-from entities.ai import GENERATED_CONVERSATION_TITLE_PROMPT
+from entities.ai import GENERATED_CONVERSATION_TITLE_PROMPT, GENERATED_USER_MAYBE_QUESTION_PROMPT
 from entities.chat_response_entity import ChatResponseType, ChatResponseEntity
 from entities.redis_entity import REDIS_CHAT_GENERATED_KEY
 from model.conversation import Conversation
 from model.message import Message
 from pkg.exception import FailException
 from schema.ai_schema import AIChatSchema, ConversationMessagesSchema, ConversationDeleteSchema, \
-    ConversationUpdateSchema
+    ConversationUpdateSchema, ConversationMaybeQuestionSchema
 from task import run_ai_chat_task
 from typing import Generator
 
@@ -165,15 +165,20 @@ def update_conversation_title_service(conversation_id, user_id: str, name: str) 
     )
     return conversation
 
-
-def ai_conversation_update_service(req: ConversationUpdateSchema, user_id: str) -> Conversation:
-    """根据用户问题与 AI 回复生成并更新会话主题"""
+def get_message_detail_service(message_id: str, user_id: str) -> Message:
+    """获取会话详情"""
     message = db.session.query(Message).filter(
-        Message.id == str(req.message_id.data),
+        Message.id == message_id,
         Message.user_id == user_id
     ).first()
     if message is None:
         raise FailException("会话不存在")
+    return message
+
+
+def ai_conversation_update_service(req: ConversationUpdateSchema, user_id: str) -> Conversation:
+    """根据用户问题与 AI 回复生成并更新会话主题"""
+    message = get_message_detail_service(message_id=req.message_id.data, user_id=user_id)
 
     system_prompt = GENERATED_CONVERSATION_TITLE_PROMPT.format(
         user_question=message.question,
@@ -194,17 +199,19 @@ def ai_conversation_update_service(req: ConversationUpdateSchema, user_id: str) 
     )
     return conversation
 
-# if __name__ == '__main__':
-#     prompt = PromptTemplate(template=GENERATED_CONVERSATION_TITLE_PROMPT, input_variables=["user_question", "ai_answer"])
-#     chain = {
-#                 "user_question": RunnableLambda(lambda x: x.get("user_question")),
-#                 "ai_answer": RunnableLambda(lambda x: x.get("ai_answer")),
-#             } |prompt | chat_qianwen_llm | StrOutputParser
-#     result = prompt.invoke({
-#         "user_question": "羞羞的铁拳中，诉讼请求是什么",
-#         "ai_answer": """电影《羞羞的铁拳》是一部喜剧片，主要讲述的是搏击选手艾迪生与体育记者马小因一场意外互换身体后发生的一系列搞笑故事。影片的核心情节围绕身份错位、打假拳、复仇与成长展开，并未涉及法律诉讼或具体的“诉讼请求”内容。
-#
-# 因此，《羞羞的铁拳》中并没有明确的“诉讼请求”这一法律概念。如果你是在比喻或引用某个具体场景，可能需要提供更多上下文。否则，从电影本身来看，该问题并不适用。""",
-#     })
-#     print(result)
-
+def ai_conversation_maybe_question_service(req: ConversationMaybeQuestionSchema, user_id: str) -> list[str]:
+    """生成用户可能询问的问题"""
+    message = get_message_detail_service(message_id=req.message_id.data, user_id=user_id)
+    system_prompt = GENERATED_USER_MAYBE_QUESTION_PROMPT.format(
+        user_question=message.question,
+        ai_answer=message.answer,
+    )
+    agent = create_agent(
+        model=chat_qianwen_llm,
+        system_prompt=system_prompt,
+    )
+    result = agent.invoke({
+        "messages": [HumanMessage(content="请帮我生成用户可能询问的问题")],
+    })
+    question = result['messages'][-1].content.split("\n")
+    return question

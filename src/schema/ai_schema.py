@@ -39,3 +39,9 @@ class ConversationUpdateSchema(FlaskForm):
     message_id = StringField("message_id", validators=[
         DataRequired("会话id必传")
     ])
+
+class ConversationMaybeQuestionSchema(FlaskForm):
+    """生成用户可能询问的问题"""
+    message_id = StringField("message_id", validators=[
+        DataRequired("会话id必传")
+    ])
