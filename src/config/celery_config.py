@@ -11,10 +11,9 @@ from .log_config import init_log_config
 @setup_logging.connect
 def config_celery_logging(**kwargs):
     """
-    Celery worker 启动时自动配置日志
-    这个函数会在 Celery worker 启动时被调用
+    Celery worker 启动时自动配置日志，与 Flask 使用同一套配置（含 app.log 绝对路径）
     """
-    init_log_config()
+    init_log_config(app=None, force=True)
 
 
 def _build_redis_url(db: int) -> str:

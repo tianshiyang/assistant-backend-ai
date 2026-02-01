@@ -17,6 +17,7 @@ from model.conversation import Conversation
 from model.message import Message
 from pkg.exception import FailException
 from schema.ai_schema import AIChatSchema, ConversationMessagesSchema, ConversationDeleteSchema
+from task import run_ai_chat_task
 from typing import Generator
 
 def event_stream_service(conversation_id: str) -> Generator:
@@ -89,8 +90,6 @@ def ai_create_conversation_service(user_id: str) -> Conversation:
 
 def ai_chat_service(req: AIChatSchema, user_id: str, conversation_id: str, is_new_chat: str):
     """AI聊天"""
-    from task import run_ai_chat_task  # 延迟导入，避免与 task -> agent_service -> ai_service 循环依赖
-
     skills = req.skills.data
     question = req.question.data
     dataset_ids = req.dataset_ids.data
