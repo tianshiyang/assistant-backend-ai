@@ -38,6 +38,7 @@ class ChatResponseEntity(TypedDict):
     message_id: str
     type: ChatResponseType # AI返回的内容类型
     tool_call: Skills | None
+    conversation_id: str
 
 # if __name__ == "__main__":
 #     result = ChatResponseEntity(

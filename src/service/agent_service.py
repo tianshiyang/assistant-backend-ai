@@ -117,6 +117,7 @@ class AgentService:
                             content="",
                             type=ChatResponseType.TOOL,
                             message_id=str(self._message.id),
+                            conversation_id=self.conversation_id,
                             tool_call=message_chunk.tool_calls[0]['name']
                         ))
                     elif hasattr(message_chunk, 'content') and message_chunk.content:
@@ -126,6 +127,7 @@ class AgentService:
                             content=message_chunk.content,
                             message_id=str(self._message.id),
                             type=ChatResponseType.GENERATE,
+                            conversation_id=self.conversation_id,
                             tool_call=None
                         ))
                         self._ai_full_answer += message_chunk.content
@@ -135,7 +137,8 @@ class AgentService:
                         content=message_chunk.content,
                         type=ChatResponseType.TOOL_RESULT,
                         message_id=str(self._message.id),
-                        tool_call=None
+                        tool_call=None,
+                        conversation_id=self.conversation_id
                     ))
 
                 # 检查是否有 usage_metadata（token 统计）
@@ -155,7 +158,8 @@ class AgentService:
                 content=self._token_dict,
                 type=ChatResponseType.SAVE_TOKEN,
                 message_id=str(self._message.id),
-                tool_call=None
+                tool_call=None,
+                conversation_id=self.conversation_id
             ))
 
         self._update_chunk_to_redis(ChatResponseEntity(
@@ -163,7 +167,8 @@ class AgentService:
             content="",
             type=ChatResponseType.DONE,
             message_id=str(self._message.id),
-            tool_call=None
+            tool_call=None,
+            conversation_id=self.conversation_id
         ))
 
         logger.info(f"Agent 响应完成，会话ID: {self.conversation_id}")
@@ -197,14 +202,17 @@ class AgentService:
         # 创建一条消息，用于获取当前消息的message_id
         self._create_messages()
 
+        logger.info(f"是否是新会话：{self.is_new_chat}")
+
         if self.is_new_chat:
             # 如果是新会话，则保存conversation_id并返回给前端
             self._update_chunk_to_redis(ChatResponseEntity(
                 updated_time=time.time(),
-                content=self.conversation_id,
+                content="",
                 type=ChatResponseType.CREATE_CONVERSATION,
                 tool_call=None,
-                message_id=str(self._message.id)
+                message_id=str(self._message.id),
+                conversation_id=self.conversation_id
             ))
 
         """构建智能体并执行流式响应"""
@@ -251,7 +259,8 @@ class AgentService:
                 content=f"生成失败，错误原因：{str(e)}",
                 type=ChatResponseType.ERROR,
                 message_id=str(self._message.id) if self._message else '',
-                tool_call=None
+                tool_call=None,
+                conversation_id=self.conversation_id
             ))
             logger.error(f"Agent 处理出错，会话ID: {self.conversation_id}, 错误: {str(e)}", exc_info=True)
             raise

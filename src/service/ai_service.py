@@ -70,6 +70,7 @@ def event_stream_service(conversation_id: str) -> Generator:
                     content="",
                     type=ChatResponseType.PING,
                     message_id="",
+                    conversation_id=conversation_id,
                     tool_call=None
                 )
                 yield f"event:message\ndata: {json.dumps(message, ensure_ascii=False)}\n\n"
@@ -81,6 +82,7 @@ def event_stream_service(conversation_id: str) -> Generator:
             content=f"流式响应错误: {str(e)}",
             type=ChatResponseType.ERROR,
             message_id="",
+            conversation_id=conversation_id,
             tool_call=None
         )
         yield f"event:message\ndata: {json.dumps(error_message, ensure_ascii=False)}\n\n"
@@ -191,7 +193,6 @@ def ai_conversation_update_service(req: ConversationUpdateSchema, user_id: str) 
     result = agent.invoke({
         "messages": [HumanMessage(content="请帮我生成本次回话的主题")],
     })
-    print(result['messages'][-1].content, "result['messages'][-1].content")
     conversation = update_conversation_title_service(
         conversation_id=message.conversation_id,
         user_id=user_id,
