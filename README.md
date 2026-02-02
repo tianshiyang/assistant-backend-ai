@@ -17,10 +17,6 @@
 ![图片](docs/chat001.png)
 
 
-
-[在线体验地址](https://tianshiyang.com)
-注：线上服务器为低配版本，性能较差，请勿过度依赖。
-
 后端代码地址：
 https://github.com/tianshiyang/assistant-backend-ai
 
