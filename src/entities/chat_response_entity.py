@@ -5,9 +5,11 @@
 @Author  : tianshiyang
 @File    : chat_response_entity.py
 """
-import json
 from enum import Enum
-from typing import Any, TypedDict, NotRequired, Callable
+from typing import Any, TypedDict, NotRequired, Callable, Literal
+
+from pydantic import BaseModel, Field
+
 from entities.ai import Skills
 
 class ChatResponseType(str, Enum):
@@ -34,6 +36,19 @@ class ChatResponseType(str, Enum):
     GENERATE = "generate"
     CREATE_CONVERSATION = "create_conversation"
 
+# 搜索工具执行返回的结果实体（用于 response_format，必须是 Pydantic BaseModel）
+class SearchToolProcessDataSchema(BaseModel):
+    """搜索工具执行返回的结果实体"""
+    
+    class ToolProcessContent(BaseModel):
+        process_type: Literal["success", "empty", "error"] = Field(description="执行结果的类型，包含成功、失败、无结果")
+        url: str = Field(description="搜索类工具返回的对应文档或网站的url")
+        title: str = Field(description="搜索类工具返回的对应文档或网站的名称")
+        content: str = Field(description="搜索工具返回的文档或网页的具体内容")
+        icon: str = Field(description="搜索工具返回的文档或网页的icon")
+    
+    tool_process_type: Literal["search"] = Field(description="工具的类型，包含搜索")
+    tool_process_content: list[ToolProcessContent] = Field(description="工具执行过程的结果")
 
 # AI返回的响应体
 class ChatResponseEntity(TypedDict):

@@ -79,7 +79,6 @@ class AgentService:
 
     def _build_tools(self, skills: list[Skills]) -> None:
         """构建工具列表"""
-        logger.info(f"工具skill: {skills} tool_entity： {tool_entity}")
         for skill in skills:
             tool = tool_entity.get(skill)
             if tool:
@@ -168,7 +167,6 @@ class AgentService:
             conversation_id=self.conversation_id
         ))
 
-        logger.info(f"Agent 响应完成，会话ID: {self.conversation_id}")
 
     def _create_messages(self) -> Message:
         """创建一个一条消息"""
