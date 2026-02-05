@@ -7,7 +7,7 @@
 """
 import json
 from enum import Enum
-from typing import Any, TypedDict
+from typing import Any, TypedDict, NotRequired, Callable
 from entities.ai import Skills
 
 class ChatResponseType(str, Enum):
@@ -16,14 +16,18 @@ class ChatResponseType(str, Enum):
     done-完成
     error-失败
     tool-调用工具
+    get_tools-获取可调用的工具
     generate-生成内容
     tool_result-工具返回结果
+    tool_process_data-工具执行的过程数据
     generates-生成内容
     create_conversation-生成会话
     """
     PING = "ping"
     DONE = "done"
     ERROR = "error"
+    GET_TOOLS = "get_tools"  # 获取可调用的工具
+    TOOL_PROCESS = "tool_process_data" # 工具执行的过程数据
     TOOL = "tool"
     TOOL_RESULT = "tool_result"
     SAVE_TOKEN = "save_token"
@@ -39,6 +43,11 @@ class ChatResponseEntity(TypedDict):
     type: ChatResponseType # AI返回的内容类型
     tool_call: Skills | None
     conversation_id: str
+
+# agent context
+class AgentContextSchema(TypedDict):
+    dataset_ids: NotRequired[list[str]]
+    function_callable: Callable[[ChatResponseType, str], None]
 
 # if __name__ == "__main__":
 #     result = ChatResponseEntity(

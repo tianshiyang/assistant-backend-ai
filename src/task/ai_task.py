@@ -8,7 +8,6 @@
 from celery import shared_task
 
 from entities.ai import Skills
-from service.agent_service import AgentService
 from utils import get_module_logger
 
 logger = get_module_logger(__name__)
@@ -24,7 +23,8 @@ def run_ai_chat_task(
         is_new_chat: bool
 ):
     """执行 AI 聊天任务"""
-    # 使用上下文管理器确保资源正确释放
+    from service.agent_service import AgentService
+
     agent_service = AgentService(
         user_id=user_id,
         conversation_id=conversation_id,

@@ -13,23 +13,28 @@ from langgraph.prebuilt import ToolRuntime
 from pydantic import BaseModel
 from ai import chat_qianwen_llm
 from entities.ai import DATASET_SEARCH_RAG_PROMPT
+from entities.chat_response_entity import AgentContextSchema, ChatResponseType
 from service.milvus_database_service import get_retriever_with_scores
 from utils import get_module_logger
 
 logger = get_module_logger(__name__)
 
-class Context(BaseModel):
-    """子 agent（知识库检索）的不可变上下文，由父 agent 传入。"""
-    dataset_ids: list[str]
-
 
 def _dataset_ids_from_context(context) -> list[str]:
-    """从父/子 agent 的 context 中安全取出 dataset_ids（支持 Pydantic 或 dict）。"""
+    """从父/子 agent 的 context 中安全取出 dataset_ids"""
     if context is None:
         return []
     if isinstance(context, dict):
         return list(context.get("dataset_ids") or [])
     return list(getattr(context, "dataset_ids", []) or [])
+
+def _function_callable_from_context(
+    context: AgentContextSchema,
+    response_content: str,
+    response_type: ChatResponseType = ChatResponseType.TOOL_PROCESS, # 默认工具执行的过程数据
+):
+    """从父agent的context中取出_function_callable_from_context"""
+    return context["function_callable"](response_type, response_content)
 
 
 def _build_dataset_ids_expr(dataset_ids: list[str]) -> str:
@@ -43,7 +48,7 @@ def _build_dataset_ids_expr(dataset_ids: list[str]) -> str:
 @tool
 def get_dataset_search_result(
     question: str,
-    runtime: ToolRuntime[Context],
+    runtime: ToolRuntime[AgentContextSchema],
 ) -> str:
     """
     从知识库中检索与用户问题相关的文档片段（RAG 检索步骤）。
@@ -75,13 +80,24 @@ def get_dataset_search_result(
     )
     logger.info(f"检索的问题：{question[:50]}\n检索的结果：{raws}")
     if not raws:
+        _function_callable_from_context(
+            context=runtime.context,
+            response_type=ChatResponseType.TOOL_PROCESS,
+            response_content="(未检索到相关文档)"
+        )
         return "（未检索到相关文档）"
-    # 返回文档内容，每段用双换行分隔，便于 agent 理解
-    return "\n\n".join([raw.page_content for raw in raws])
+
+    dataset_context = "\n\n".join([raw.page_content for raw in raws])
+    _function_callable_from_context(
+        context=runtime.context,
+        response_type=ChatResponseType.TOOL_PROCESS,
+        response_content=dataset_context
+    )
+    return dataset_context
 
 
 @tool
-def dataset_search_agent_tool(question: str, runtime: ToolRuntime):
+def dataset_search_agent_tool(question: str, runtime: ToolRuntime[AgentContextSchema]):
     """
     知识库检索 Agent：基于 RAG 检索知识库并生成回答。
     
@@ -103,14 +119,16 @@ def dataset_search_agent_tool(question: str, runtime: ToolRuntime):
     agent = create_agent(
         model=chat_qianwen_llm,
         tools=[get_dataset_search_result],
-        context_schema=Context,
+        context_schema=AgentContextSchema,
         name="dataset_search_agent",
         system_prompt=DATASET_SEARCH_RAG_PROMPT,
     )
     try:
         agent_result = agent.invoke(
             {"messages": [HumanMessage(content=question)]},
-            context=Context(dataset_ids=dataset_ids),
+            context=AgentContextSchema(
+                **runtime.context,
+            ),
         )
         # 取最后一条 AI 消息的 content
         if isinstance(agent_result, dict) and agent_result.get("messages"):

@@ -15,14 +15,13 @@ from langchain.agents import create_agent
 from langchain.agents.middleware import SummarizationMiddleware
 from langchain_core.messages import HumanMessage, AnyMessage
 from langchain_core.runnables import RunnableConfig
-from pydantic import BaseModel
 
 from ai import chat_qianwen_llm
 from ai.agents import dataset_search_agent_tool
 from entities.ai import Skills, SUMMARIZATION_MIDDLEWARE_PROMPT, PARENT_AGENT_PROMPT
 from langgraph.checkpoint.postgres import PostgresSaver
 
-from entities.chat_response_entity import ChatResponseEntity, ChatResponseType
+from entities.chat_response_entity import ChatResponseEntity, ChatResponseType, AgentContextSchema
 from entities.redis_entity import REDIS_CHAT_GENERATED_KEY
 from model.message import Message
 from service.message_service import create_message_service
@@ -33,9 +32,6 @@ logger = get_module_logger(__name__)
 tool_entity = {
     Skills.DATASET_RETRIEVER.value: dataset_search_agent_tool # 知识库检索Agent
 }
-
-class AgentContextSchema(BaseModel):
-    dataset_ids: list[str]
 
 
 class AgentService:
@@ -162,6 +158,7 @@ class AgentService:
                 conversation_id=self.conversation_id
             ))
 
+        # 发送完成事件
         self._update_chunk_to_redis(ChatResponseEntity(
             updated_time=time.time(),
             content="",
@@ -198,11 +195,22 @@ class AgentService:
             total_tokens=self._token_dict.get("total_tokens"),
         )
 
+    def _handle_tool_callback(self, tool_callback_type: ChatResponseType, content: str) -> None:
+        """处理工具内部的回调函数"""
+        self._update_chunk_to_redis(
+            ChatResponseEntity(
+                updated_time=time.time(),
+                content=content,
+                type=tool_callback_type,
+                message_id=str(self._message.id),
+                tool_call=None,
+                conversation_id=self.conversation_id
+            )
+        )
+
     def build_agent(self) -> None:
         # 创建一条消息，用于获取当前消息的message_id
         self._create_messages()
-
-        logger.info(f"是否是新会话：{self.is_new_chat}")
 
         if self.is_new_chat:
             # 如果是新会话，则保存conversation_id并返回给前端
@@ -221,7 +229,6 @@ class AgentService:
         self._checkpointer_context = PostgresSaver.from_conn_string(db_uri)
         self._checkpointer = self._checkpointer_context.__enter__()
 
-        logger.info(f"agent中，可以使用的工具是：{self._tools}")
         try:
             # 创建 agent
             agent = create_agent(
@@ -246,7 +253,10 @@ class AgentService:
                 },
                 stream_mode="messages",
                 config=self.get_config(conversation_id=self.conversation_id),
-                context=AgentContextSchema(dataset_ids=self.dataset_ids)
+                context=AgentContextSchema(
+                    dataset_ids=self.dataset_ids,
+                    function_callable=self._handle_tool_callback
+                )
             )
             # 处理stream流
             self._handle_stream_chunks(chunks=chunks)
