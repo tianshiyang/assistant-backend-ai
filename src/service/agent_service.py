@@ -24,7 +24,7 @@ from ai.prompts.prompts import SUMMARIZATION_MIDDLEWARE_PROMPT, PARENT_AGENT_PRO
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from entities.chat_response_entity import ChatResponseEntity, ChatResponseType, AgentContextSchema
-from entities.redis_entity import REDIS_CHAT_GENERATED_KEY
+from entities.redis_entity import REDIS_CHAT_GENERATED_KEY, REDIS_CHAT_STOP_KEY
 from model.message import Message
 from service.message_service import create_message_service
 from utils import get_module_logger
@@ -72,6 +72,7 @@ class AgentService:
             "output_tokens": 0,
             "total_tokens": 0,
         }
+        self._final_answer_tokens = None
         self._ai_full_answer = ""
         self._redis = current_app.redis_stream
         self._ai_chunks = []  # AI输出的内容
@@ -94,9 +95,23 @@ class AgentService:
 
     async def _handle_stream_chunks(self, chunks: AsyncIterator[dict[str, Any] | Any]) -> None:
         """处理 async stream 流"""
-        final_answer_tokens = None  # 最终答案阶段的 token 统计
-
+        is_stopped = False
+        stop_stream_redis_conversation_key = REDIS_CHAT_STOP_KEY.format(conversation_id=self.conversation_id)
         async for chunk in chunks:
+            if self._redis.get(stop_stream_redis_conversation_key) == ChatResponseType.STOP.value:
+                # 终止会话
+                self._update_chunk_to_redis(ChatResponseEntity(
+                    updated_time=time.time(),
+                    content="会话已终止",
+                    type=ChatResponseType.STOP,
+                    message_id=str(self._message.id),
+                    conversation_id=self.conversation_id,
+                    tool_call=None
+                ))
+                self._redis.delete(stop_stream_redis_conversation_key)
+                is_stopped = True
+                break
+
             if isinstance(chunk, tuple) and len(chunk) == 2:
                 message_chunk, metadata = chunk
                 # 根据消息类型处理
@@ -135,14 +150,29 @@ class AgentService:
 
                 # 检查是否有 usage_metadata（token 统计）
                 if hasattr(message_chunk, "usage_metadata") and message_chunk.usage_metadata:
-                    final_answer_tokens = message_chunk.usage_metadata
+                    self._final_answer_tokens = message_chunk.usage_metadata
 
-        # 打印最终统计信息
-        if final_answer_tokens:
+        # 存储token消耗
+        self._save_use_tokens()
+
+        if not is_stopped:
+            # 发送完成事件
+            self._update_chunk_to_redis(ChatResponseEntity(
+                updated_time=time.time(),
+                content="",
+                type=ChatResponseType.DONE,
+                message_id=str(self._message.id),
+                tool_call=None,
+                conversation_id=self.conversation_id
+            ))
+
+    def _save_use_tokens(self):
+        """打印最终统计信息"""
+        if self._final_answer_tokens:
             self._token_dict = {
-                "input_tokens": final_answer_tokens.get('input_tokens'),
-                "output_tokens": final_answer_tokens.get('output_tokens'),
-                "total_tokens": final_answer_tokens.get('total_tokens'),
+                "input_tokens": self._final_answer_tokens.get('input_tokens'),
+                "output_tokens": self._final_answer_tokens.get('output_tokens'),
+                "total_tokens": self._final_answer_tokens.get('total_tokens'),
             }
             # 保存token用量
             self._update_chunk_to_redis(ChatResponseEntity(
@@ -154,15 +184,6 @@ class AgentService:
                 conversation_id=self.conversation_id
             ))
 
-        # 发送完成事件
-        self._update_chunk_to_redis(ChatResponseEntity(
-            updated_time=time.time(),
-            content="",
-            type=ChatResponseType.DONE,
-            message_id=str(self._message.id),
-            tool_call=None,
-            conversation_id=self.conversation_id
-        ))
 
     def _create_messages(self) -> Message:
         """创建一个一条消息"""

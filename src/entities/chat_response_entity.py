@@ -25,6 +25,7 @@ class ChatResponseType(str, Enum):
     generates-生成内容
     create_conversation-生成会话
     """
+    STOP = "stop"
     PING = "ping"
     DONE = "done"
     ERROR = "error"

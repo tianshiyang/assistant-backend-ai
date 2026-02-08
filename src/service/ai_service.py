@@ -11,20 +11,17 @@ import time
 from flask import current_app
 from langchain.agents import create_agent
 from langchain_core.messages import HumanMessage
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import PromptTemplate
-from langchain_core.runnables import RunnableLambda
 
 from ai import chat_qianwen_llm
 from config.db_config import db
 from ai.prompts.prompts import GENERATED_CONVERSATION_TITLE_PROMPT, GENERATED_USER_MAYBE_QUESTION_PROMPT
 from entities.chat_response_entity import ChatResponseType, ChatResponseEntity
-from entities.redis_entity import REDIS_CHAT_GENERATED_KEY
+from entities.redis_entity import REDIS_CHAT_GENERATED_KEY, REDIS_CHAT_STOP_KEY
 from model.conversation import Conversation
 from model.message import Message
 from pkg.exception import FailException
 from schema.ai_schema import AIChatSchema, ConversationMessagesSchema, ConversationDeleteSchema, \
-    ConversationUpdateSchema, ConversationMaybeQuestionSchema
+    ConversationUpdateSchema, ConversationMaybeQuestionSchema, ConversationStopSchema
 from task import run_ai_chat_task
 from typing import Generator
 
@@ -38,7 +35,7 @@ def event_stream_service(conversation_id: str) -> Generator:
     last_ts = 0
     last_index = 0
     should_exit = False  # 标志变量，控制外层循环退出
-    
+
     try:
         while True:
             # 检查退出标志
@@ -55,7 +52,7 @@ def event_stream_service(conversation_id: str) -> Generator:
                         yield f"event:message\ndata: {json.dumps(chunk, ensure_ascii=False)}\n\n"
                     
                     # 检查是否完成或出错
-                    if chunk["type"] in (ChatResponseType.DONE.value, ChatResponseType.ERROR.value):
+                    if chunk["type"] in (ChatResponseType.DONE.value, ChatResponseType.STOP.value, ChatResponseType.ERROR.value):
                         # 设置退出标志
                         should_exit = True
                         break
@@ -112,6 +109,14 @@ def ai_chat_service(req: AIChatSchema, user_id: str, conversation_id: str, is_ne
         skills=skills,
         is_new_chat=is_new_chat
     )
+
+def ai_chat_stop_service(req: ConversationStopSchema, user_id: str):
+    """停止AI聊天"""
+    get_conversation_detail_service(conversation_id=req.conversation_id.data, user_id=user_id)
+    redis_key = REDIS_CHAT_STOP_KEY.format(conversation_id=req.conversation_id.data)
+    redis_client = current_app.redis_stream
+    redis_client.set(redis_key, ChatResponseType.STOP.value)
+    return True
 
 def ai_chat_get_conversation_messages_service(req: ConversationMessagesSchema, user_id: str) -> list[Message]:
     """获取所有聊天内容"""

@@ -28,6 +28,12 @@ class ConversationMessagesSchema(FlaskForm):
         DataRequired("会话id必传")
     ])
 
+class ConversationStopSchema(FlaskForm):
+    """获取某个会话下的所有消息"""
+    conversation_id = StringField("conversation_id", validators=[
+        DataRequired("会话id必传")
+    ])
+
 class ConversationDeleteSchema(FlaskForm):
     """删除会话"""
     conversation_id = StringField("conversation_id", validators=[

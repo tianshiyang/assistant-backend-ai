@@ -10,10 +10,10 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from pkg.response import validate_error_json, success_json, success_message
 from schema.ai_schema import AIChatSchema, ConversationMessagesSchema, ConversationDeleteSchema, \
-    ConversationUpdateSchema, ConversationMaybeQuestionSchema
+    ConversationUpdateSchema, ConversationMaybeQuestionSchema, ConversationStopSchema
 from service.ai_service import ai_chat_service, ai_create_conversation_service, event_stream_service, \
     ai_chat_get_conversation_messages_service, ai_conversation_get_all_service, ai_conversation_delete_service, \
-    ai_conversation_update_service, ai_conversation_maybe_question_service
+    ai_conversation_update_service, ai_conversation_maybe_question_service, ai_chat_stop_service
 from utils import get_module_logger
 
 # 使用统一的日志记录器
@@ -44,6 +44,15 @@ def ai_chat_handler():
         stream_with_context(event_stream_service(conversation_id=conversation_id)),
         mimetype="text/event-stream; charset=utf-8"
     )
+
+@jwt_required()
+def ai_chat_stop_handler():
+    req = ConversationStopSchema()
+    if not req.validate():
+        return validate_error_json(req.errors)
+    user_id = get_jwt_identity()
+    ai_chat_stop_service(req=req, user_id=user_id)
+    return success_message("停止成功")
 
 @jwt_required()
 def ai_chat_get_conversation_messages_handler():
