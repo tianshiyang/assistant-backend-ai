@@ -12,7 +12,7 @@ from langchain_core.documents import Document
 from langchain_core.messages import HumanMessage
 from langgraph.prebuilt import ToolRuntime
 from ai import chat_qianwen_llm
-from entities.ai import DATASET_SEARCH_RAG_PROMPT
+from ai.prompts.prompts import DATASET_SEARCH_RAG_PROMPT
 from entities.chat_response_entity import AgentContextSchema, ChatResponseType, SearchToolProcessDataSchema
 from service.milvus_database_service import get_retriever_with_scores
 from utils import get_module_logger

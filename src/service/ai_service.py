@@ -17,7 +17,7 @@ from langchain_core.runnables import RunnableLambda
 
 from ai import chat_qianwen_llm
 from config.db_config import db
-from entities.ai import GENERATED_CONVERSATION_TITLE_PROMPT, GENERATED_USER_MAYBE_QUESTION_PROMPT
+from ai.prompts.prompts import GENERATED_CONVERSATION_TITLE_PROMPT, GENERATED_USER_MAYBE_QUESTION_PROMPT
 from entities.chat_response_entity import ChatResponseType, ChatResponseEntity
 from entities.redis_entity import REDIS_CHAT_GENERATED_KEY
 from model.conversation import Conversation

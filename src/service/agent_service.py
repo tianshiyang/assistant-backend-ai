@@ -18,7 +18,8 @@ from langchain_core.runnables import RunnableConfig
 
 from ai import chat_qianwen_llm
 from ai.agents import dataset_search_agent_tool
-from entities.ai import Skills, SUMMARIZATION_MIDDLEWARE_PROMPT, PARENT_AGENT_PROMPT
+from entities.ai import Skills
+from ai.prompts.prompts import SUMMARIZATION_MIDDLEWARE_PROMPT, PARENT_AGENT_PROMPT
 from langgraph.checkpoint.postgres import PostgresSaver
 
 from entities.chat_response_entity import ChatResponseEntity, ChatResponseType, AgentContextSchema

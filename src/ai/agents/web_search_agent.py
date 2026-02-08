@@ -6,9 +6,8 @@
 @File    : web_search_agent.py
 """
 import asyncio
-import json
 import os
-from typing import List, TypedDict, Callable
+from typing import List, Callable
 
 import dotenv
 from langchain.agents import create_agent
@@ -16,6 +15,8 @@ from langchain_core.messages import HumanMessage, ToolMessage
 from langchain_core.tools import BaseTool
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from ai import chat_qianwen_llm
+from ai.prompts.prompts import WEB_SEARCH_AGENT_PROMPTS
+from entities.chat_response_entity import SearchToolProcessDataSchema
 
 dotenv.load_dotenv()
 
@@ -37,10 +38,6 @@ async def get_mcp_tools() -> List[BaseTool]:
     return tools
 
 async def create_web_search_agent(func: Callable[[str], None]):
-    class ResponseFormat(TypedDict):
-        content: str # 检索出来的内容
-        url: str # 检索出来的网站url
-        title: str # 检索出来的网站名称
 
     """创建web搜索Agent"""
     func("正在获取工具")
@@ -51,7 +48,8 @@ async def create_web_search_agent(func: Callable[[str], None]):
     agent = create_agent(
         model=chat_qianwen_llm,
         tools=tools,
-        response_format=ResponseFormat
+        response_format=SearchToolProcessDataSchema,
+        system_prompt=WEB_SEARCH_AGENT_PROMPTS
     )
 
     # 使用 ainvoke() 异步调用 agent（因为 MCP 工具是异步的）
@@ -62,6 +60,7 @@ async def create_web_search_agent(func: Callable[[str], None]):
     })
 
     print(result)
+    print(result["structured_response"])
 
     # messages = result["messages"]
     # print(messages)
