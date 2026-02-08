@@ -30,6 +30,7 @@ class ChatResponseType(str, Enum):
     ERROR = "error"
     GET_TOOLS = "get_tools"  # 获取可调用的工具
     TOOL_PROCESS = "tool_process_data" # 工具执行的过程数据
+    GENERATE_SUCCESS = "generate_success"
     TOOL = "tool"
     TOOL_RESULT = "tool_result"
     SAVE_TOKEN = "save_token"

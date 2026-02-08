@@ -8,7 +8,7 @@
 import json
 import os
 import time
-from typing import Iterator, Any
+from typing import AsyncIterator, Any
 
 from flask import current_app
 from langchain.agents import create_agent
@@ -18,9 +18,10 @@ from langchain_core.runnables import RunnableConfig
 
 from ai import chat_qianwen_llm
 from ai.agents import dataset_search_agent_tool
+from ai.agents.web_search_agent import web_search_agent_tool
 from entities.ai import Skills
 from ai.prompts.prompts import SUMMARIZATION_MIDDLEWARE_PROMPT, PARENT_AGENT_PROMPT
-from langgraph.checkpoint.postgres import PostgresSaver
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from entities.chat_response_entity import ChatResponseEntity, ChatResponseType, AgentContextSchema
 from entities.redis_entity import REDIS_CHAT_GENERATED_KEY
@@ -31,7 +32,8 @@ from utils import get_module_logger
 logger = get_module_logger(__name__)
 
 tool_entity = {
-    Skills.DATASET_RETRIEVER.value: dataset_search_agent_tool # 知识库检索Agent
+    Skills.DATASET_RETRIEVER.value: dataset_search_agent_tool,  # 知识库检索Agent
+    Skills.WEB_SEARCH.value: web_search_agent_tool  # web搜索agent
 }
 
 
@@ -64,9 +66,7 @@ class AgentService:
         self.question = question
         self.conversation_id = conversation_id
         self._tools = []
-        self._message: Message | None = None # 消息实例
-        self._checkpointer_context = None  # PostgresSaver 上下文管理器
-        self._checkpointer = None  # PostgresSaver 实例
+        self._message: Message | None = None  # 消息实例
         self._token_dict = {
             "input_tokens": 0,
             "output_tokens": 0,
@@ -74,9 +74,8 @@ class AgentService:
         }
         self._ai_full_answer = ""
         self._redis = current_app.redis_stream
-        self._ai_chunks = [] # AI输出的内容
+        self._ai_chunks = []  # AI输出的内容
         self._build_tools(skills)
-
 
     def _build_tools(self, skills: list[Skills]) -> None:
         """构建工具列表"""
@@ -95,12 +94,11 @@ class AgentService:
         redis_key = REDIS_CHAT_GENERATED_KEY.format(conversation_id=self.conversation_id)
         self._redis.rpush(redis_key, json.dumps(payload, ensure_ascii=False))
 
-
-    def _handle_stream_chunks(self, chunks: Iterator[dict[str, Any] | Any]) -> None:
-        """处理stream流"""
+    async def _handle_stream_chunks(self, chunks: AsyncIterator[dict[str, Any] | Any]) -> None:
+        """处理 async stream 流"""
         final_answer_tokens = None  # 最终答案阶段的 token 统计
 
-        for chunk in chunks:
+        async for chunk in chunks:
             if isinstance(chunk, tuple) and len(chunk) == 2:
                 message_chunk, metadata = chunk
                 # 根据消息类型处理
@@ -168,7 +166,6 @@ class AgentService:
             conversation_id=self.conversation_id
         ))
 
-
     def _create_messages(self) -> Message:
         """创建一个一条消息"""
         self._message = create_message_service(
@@ -207,7 +204,8 @@ class AgentService:
             )
         )
 
-    def build_agent(self) -> None:
+    async def build_agent(self) -> None:
+        """构建智能体并执行异步流式响应"""
         # 创建一条消息，用于获取当前消息的message_id
         self._create_messages()
 
@@ -222,45 +220,42 @@ class AgentService:
                 conversation_id=self.conversation_id
             ))
 
-        """构建智能体并执行流式响应"""
         db_uri = os.getenv("POSTGRES_SHOT_MEMORY_URI")
 
-        self._checkpointer_context = PostgresSaver.from_conn_string(db_uri)
-        self._checkpointer = self._checkpointer_context.__enter__()
-
         try:
-            # 创建 agent
-            agent = create_agent(
-                model=chat_qianwen_llm,
-                tools=self._tools,
-                context_schema=AgentContextSchema,
-                middleware=[
-                    SummarizationMiddleware(
-                        model=chat_qianwen_llm,
-                        trigger=[('tokens', 4000), ("messages", 100)],
-                        summary_prompt=SUMMARIZATION_MIDDLEWARE_PROMPT
-                    )
-                ],
-                system_prompt=PARENT_AGENT_PROMPT,
-                checkpointer=self._checkpointer,
-            )
-
-            # 执行流式响应
-            chunks = agent.stream(
-                {
-                    "messages": [HumanMessage(content=self.question)],
-                },
-                stream_mode="messages",
-                config=self.get_config(conversation_id=self.conversation_id),
-                context=AgentContextSchema(
-                    dataset_ids=self.dataset_ids,
-                    function_callable=self._handle_tool_callback
+            async with AsyncPostgresSaver.from_conn_string(db_uri) as checkpointer:
+                # 创建 agent
+                agent = create_agent(
+                    model=chat_qianwen_llm,
+                    tools=self._tools,
+                    context_schema=AgentContextSchema,
+                    middleware=[
+                        SummarizationMiddleware(
+                            model=chat_qianwen_llm,
+                            trigger=[('tokens', 4000), ("messages", 100)],
+                            summary_prompt=SUMMARIZATION_MIDDLEWARE_PROMPT
+                        )
+                    ],
+                    system_prompt=PARENT_AGENT_PROMPT,
+                    checkpointer=checkpointer,
                 )
-            )
-            # 处理stream流
-            self._handle_stream_chunks(chunks=chunks)
-            # 保存聊天内容到数据库中
-            self._save_messages()
+
+                # 执行异步流式响应
+                chunks = agent.astream(
+                    {
+                        "messages": [HumanMessage(content=self.question)],
+                    },
+                    stream_mode="messages",
+                    config=self.get_config(conversation_id=self.conversation_id),
+                    context=AgentContextSchema(
+                        dataset_ids=self.dataset_ids,
+                        function_callable=self._handle_tool_callback
+                    ),
+                )
+                # 处理 async stream 流
+                await self._handle_stream_chunks(chunks=chunks)
+                # 保存聊天内容到数据库中
+                self._save_messages()
 
         except Exception as e:
             self._update_chunk_to_redis(ChatResponseEntity(
@@ -273,34 +268,6 @@ class AgentService:
             ))
             logger.error(f"Agent 处理出错，会话ID: {self.conversation_id}, 错误: {str(e)}", exc_info=True)
             raise
-        finally:
-            # 确保完成后关闭 PostgresSaver 连接
-            self.close()
-
-    def close(self) -> None:
-        """关闭 PostgresSaver 连接"""
-        if self._checkpointer_context is not None and self._checkpointer is not None:
-            try:
-                # 调用上下文管理器的 __exit__ 方法关闭连接
-                self._checkpointer_context.__exit__(None, None, None)
-            except Exception as e:
-                logger.error(
-                    f"关闭 PostgresSaver 连接时出错，会话ID: {self.conversation_id}, 错误: {str(e)}",
-                    exc_info=True
-                )
-            finally:
-                self._checkpointer_context = None
-                self._checkpointer = None
-
-    def __enter__(self):
-        """上下文管理器入口"""
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """上下文管理器出口，确保资源释放"""
-        self.close()
-        return False  # 不抑制异常
-
 
     @staticmethod
     def get_config(conversation_id: str) -> RunnableConfig:
@@ -308,4 +275,4 @@ class AgentService:
             configurable={
                 "thread_id": conversation_id,
             }
-    )
+        )

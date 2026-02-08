@@ -5,6 +5,8 @@
 @Author  : tianshiyang
 @File    : ai_task.py
 """
+import asyncio
+
 from celery import shared_task
 
 from entities.ai import Skills
@@ -33,6 +35,4 @@ def run_ai_chat_task(
         skills=skills,
         is_new_chat=is_new_chat
     )
-    agent_service.build_agent()
-
-    logger.info(f"AI生成任务完成，用户ID: {user_id}, 会话ID: {conversation_id}")
+    asyncio.run(agent_service.build_agent())
