@@ -9,7 +9,7 @@ import asyncio
 
 from celery import shared_task
 
-from entities.ai import Skills
+from entities.ai_entity import Skills
 from utils import get_module_logger
 
 logger = get_module_logger(__name__)

@@ -19,7 +19,7 @@ from langchain_core.runnables import RunnableConfig
 from ai import chat_qianwen_llm
 from ai.agents import dataset_search_agent_tool
 from ai.agents.web_search_agent import web_search_agent_tool
-from entities.ai import Skills
+from entities.ai_entity import Skills
 from ai.prompts.prompts import SUMMARIZATION_MIDDLEWARE_PROMPT, PARENT_AGENT_PROMPT
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
@@ -83,8 +83,6 @@ class AgentService:
             tool = tool_entity.get(skill)
             if tool:
                 self._tools.append(tool)
-            else:
-                logger.warning(f"未找到技能对应的工具: {skill}")
 
     def _update_chunk_to_redis(self, payload: ChatResponseEntity) -> None:
         """更新流内容到redis中"""
@@ -210,6 +208,7 @@ class AgentService:
         self._create_messages()
 
         if self.is_new_chat:
+            logger.info("向redis中添加了一条创建会话的消息")
             # 如果是新会话，则保存conversation_id并返回给前端
             self._update_chunk_to_redis(ChatResponseEntity(
                 updated_time=time.time(),
@@ -224,6 +223,7 @@ class AgentService:
 
         try:
             async with AsyncPostgresSaver.from_conn_string(db_uri) as checkpointer:
+                logger.error(f"可调用的工具：{self._tools}")
                 # 创建 agent
                 agent = create_agent(
                     model=chat_qianwen_llm,

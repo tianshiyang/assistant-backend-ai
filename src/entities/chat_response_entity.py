@@ -10,7 +10,7 @@ from typing import Any, TypedDict, NotRequired, Callable, Literal
 
 from pydantic import BaseModel, Field
 
-from entities.ai import Skills
+from entities.ai_entity import Skills
 
 class ChatResponseType(str, Enum):
     """
