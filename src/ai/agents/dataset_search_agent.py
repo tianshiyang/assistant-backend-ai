@@ -6,6 +6,9 @@
 @File    : dataset_search_agent.py
 """
 
+import json
+from typing import List
+
 from langchain.agents import create_agent
 from langchain.tools import tool
 from langchain_core.documents import Document
@@ -59,19 +62,20 @@ def get_dataset_search_result(
     dataset_ids = _dataset_ids_from_context(runtime.context)
     
     expr = _build_dataset_ids_expr(dataset_ids)
-    raws = get_retriever_with_scores(
+    raws: List[Document] = get_retriever_with_scores(
         query=question,
         k=20,
-        min_score=0.3,
+        # min_score=0.1,
         dense_weight=0.7,
         sparse_weight=0.3,
         final_k=5,
         expr=expr,
     )
-    logger.error(f"检索的问题：{question}, 检索的知识库id：{dataset_ids}, 检索到的结果：{raws}")
+    logger.info(f"检索问题: {question}, 知识库: {dataset_ids}, 结果数: {len(raws)}")
     if not raws:
         return "（未检索到相关文档）"
-    return raws
+    # 返回字符串，避免 list[Document] 序列化问题
+    return "\n\n---\n\n".join(json.dumps({"content": doc.page_content, "source": doc.metadata['source']}) for doc in raws)
 
 
 @tool
@@ -117,9 +121,31 @@ def dataset_search_agent_tool(question: str, runtime: ToolRuntime[AgentContextSc
                 **runtime.context,
             ),
         )
-        return agent_result['structured_response'].model_dump()
+        # 优先用 structured_response（LLM 调用了结构化输出工具时才有）
+        structured = agent_result.get('structured_response')
+        if structured is not None:
+            return json.dumps(structured.model_dump(), ensure_ascii=False)
+
+        # fallback：LLM 没调用结构化输出工具 → 用 with_structured_output 强制格式化
+        logger.warning("子 agent 未返回 structured_response，使用 with_structured_output 强制格式化")
+        ai_answer = ""
+        messages = agent_result.get('messages') or []
+        for m in reversed(messages):
+            if hasattr(m, 'content') and m.content and m.__class__.__name__ != 'HumanMessage':
+                ai_answer = str(m.content)
+                break
+
+        if not ai_answer:
+            return "知识库检索完成，但未生成有效回答。"
+
+        # 强制调用模型，以 structured output 模式输出
+        structured_llm = chat_qianwen_llm.with_structured_output(SearchToolProcessDataSchema)
+        forced_result = structured_llm.invoke(
+            f"请将以下知识库检索结果格式化为结构化输出：\n\n{ai_answer}"
+        )
+        return json.dumps(forced_result.model_dump(), ensure_ascii=False)
     except Exception as e:
-        logger.error(f"知识库检索出错，出错原因：{str(e)}")
+        logger.error(f"知识库检索出错，出错原因：{str(e)}", exc_info=True)
         return f"知识库检索出错，出错原因：{str(e)}"
 
 

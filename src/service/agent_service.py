@@ -244,40 +244,7 @@ class AgentService:
 
         try:
             async with AsyncPostgresSaver.from_conn_string(db_uri) as checkpointer:
-                logger.error(f"可调用的工具：{self._tools}")
-                # 创建 agent
-                agent = create_agent(
-                    model=chat_qianwen_llm,
-                    tools=self._tools,
-                    context_schema=AgentContextSchema,
-                    middleware=[
-                        SummarizationMiddleware(
-                            model=chat_qianwen_llm,
-                            trigger=[('tokens', 4000), ("messages", 100)],
-                            summary_prompt=SUMMARIZATION_MIDDLEWARE_PROMPT
-                        )
-                    ],
-                    system_prompt=PARENT_AGENT_PROMPT,
-                    checkpointer=checkpointer,
-                )
-
-                # 执行异步流式响应
-                chunks = agent.astream(
-                    {
-                        "messages": [HumanMessage(content=self.question)],
-                    },
-                    stream_mode="messages",
-                    config=self.get_config(conversation_id=self.conversation_id),
-                    context=AgentContextSchema(
-                        dataset_ids=self.dataset_ids,
-                        function_callable=self._handle_tool_callback
-                    ),
-                )
-                # 处理 async stream 流
-                await self._handle_stream_chunks(chunks=chunks)
-                # 保存聊天内容到数据库中
-                self._save_messages()
-
+                await self._run_agent_stream(checkpointer)
         except Exception as e:
             self._update_chunk_to_redis(ChatResponseEntity(
                 updated_time=time.time(),
@@ -289,6 +256,37 @@ class AgentService:
             ))
             logger.error(f"Agent 处理出错，会话ID: {self.conversation_id}, 错误: {str(e)}", exc_info=True)
             raise
+
+    async def _run_agent_stream(self, checkpointer) -> None:
+        """实际执行 agent 流式响应（可被 build_agent 调用或重试）。"""
+        agent = create_agent(
+            model=chat_qianwen_llm,
+            tools=self._tools,
+            context_schema=AgentContextSchema,
+            middleware=[
+                SummarizationMiddleware(
+                    model=chat_qianwen_llm,
+                    trigger=[('tokens', 4000), ("messages", 100)],
+                    summary_prompt=SUMMARIZATION_MIDDLEWARE_PROMPT
+                )
+            ],
+            system_prompt=PARENT_AGENT_PROMPT,
+            checkpointer=checkpointer,
+        )
+
+        chunks = agent.astream(
+            {
+                "messages": [HumanMessage(content=self.question)],
+            },
+            stream_mode="messages",
+            config=self.get_config(conversation_id=self.conversation_id),
+            context=AgentContextSchema(
+                dataset_ids=self.dataset_ids,
+                function_callable=self._handle_tool_callback
+            ),
+        )
+        await self._handle_stream_chunks(chunks=chunks)
+        self._save_messages()
 
     @staticmethod
     def get_config(conversation_id: str) -> RunnableConfig:
