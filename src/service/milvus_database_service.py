@@ -14,19 +14,37 @@ from langchain_milvus import Milvus, BM25BuiltInFunction
 
 from utils import embeddings
 
+def _sanitize_metadata(metadata: dict) -> dict:
+    """
+    清洗 metadata，确保所有值都是 Milvus 支持的标量类型（str/int/float/bool）。
+    UnstructuredLoader 会产生 dict、list 等复杂类型（如 coordinates、languages），
+    直接插入会导致 DataNotMatchException。
+    """
+    clean = {}
+    for k, v in metadata.items():
+        if isinstance(v, (str, int, float, bool)):
+            clean[k] = v
+        elif v is None:
+            clean[k] = ""
+        else:
+            # list / dict / 其他复杂类型 → 转成字符串
+            clean[k] = str(v)
+    return clean
+
+
 def add_documents(documents: List[Document], user_id: str, document_id: str, dataset_id: str, source: str):
-    """添加文档"""
-    # 为每个文档添加元数据
+    """添加文档到 Milvus"""
     for document in documents:
+        # 先清洗 UnstructuredLoader 产生的复杂 metadata
+        document.metadata = _sanitize_metadata(document.metadata)
+        # 再添加业务字段
         document.metadata['user_id'] = user_id
         document.metadata['dataset_id'] = dataset_id
         document.metadata['source'] = source
         document.metadata['document_id'] = document_id
-    
-    # 生成唯一 ID
+
     ids = [str(uuid.uuid4()) for _ in documents]
-    
-    # 添加到 Milvus
+
     get_milvus_client().add_documents(
         documents=documents,
         ids=ids

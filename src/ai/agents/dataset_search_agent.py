@@ -62,12 +62,13 @@ def get_dataset_search_result(
     raws = get_retriever_with_scores(
         query=question,
         k=20,
-        min_score=0.8,
+        min_score=0.3,
         dense_weight=0.7,
         sparse_weight=0.3,
         final_k=5,
         expr=expr,
     )
+    logger.error(f"检索的问题：{question}, 检索的知识库id：{dataset_ids}, 检索到的结果：{raws}")
     if not raws:
         return "（未检索到相关文档）"
     return raws
