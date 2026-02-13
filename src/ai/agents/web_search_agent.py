@@ -73,6 +73,13 @@ async def web_search_agent_tool(query: str, runtime: ToolRuntime[AgentContextSch
         })
 
         structured = result.get("structured_response")
+        if structured is None:
+            logger.warning("Agent did not return structured_response, using empty result")
+            fallback = SearchToolProcessDataSchema(
+                tool_process_type="search",
+                tool_process_content=[]
+            )
+            return json.dumps(fallback.model_dump(), ensure_ascii=False)
         return json.dumps(structured.model_dump(), ensure_ascii=False)
 
     except Exception as e:
