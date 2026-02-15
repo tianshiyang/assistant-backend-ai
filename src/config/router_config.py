@@ -8,7 +8,7 @@
 from flask import Flask
 
 from router import account_blueprint, dataset_blueprint, ai_blueprint, \
-    document_blueprint
+    document_blueprint, sales_blueprint
 
 
 # 注册路由
@@ -18,6 +18,7 @@ def init_flask_router(app: Flask):
         dataset_blueprint, # 知识库模块
         document_blueprint, # 知识库文档模块
         ai_blueprint, # AI相关模块
+        sales_blueprint, # 后台服务，销售模块
     ]:
         app.register_blueprint(
             blue_print

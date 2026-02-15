@@ -9,10 +9,12 @@ from .account_routes import account_blueprint
 from .dataset_routes import dataset_blueprint
 from .document_router import document_blueprint
 from .ai_router import ai_blueprint
+from .sales_routes import sales_blueprint
 
 __all__ = [
     "account_blueprint",
     "dataset_blueprint",
     "document_blueprint",
     "ai_blueprint",
+    "sales_blueprint"
 ]
