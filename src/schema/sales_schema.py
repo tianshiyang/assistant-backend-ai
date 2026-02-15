@@ -7,7 +7,7 @@
 """
 from flask_wtf import FlaskForm
 from wtforms import IntegerField, StringField
-from wtforms.validators import DataRequired
+from wtforms.validators import DataRequired, Email, Length
 
 from schema.base_schema import PaginationSchema
 
@@ -17,3 +17,9 @@ class GetSalesByIdSchema(FlaskForm):
 
 class GetAllSalesSchema(PaginationSchema):
     sales_name = StringField('sales_name', validators=[])
+
+class UpdateSalesSchema(FlaskForm):
+    sales_id = IntegerField('sales_id', validators=[DataRequired()])
+    name = StringField('name', validators=[])
+    email = StringField("email", validators=[])
+    phone = StringField("phone", validators=[])
