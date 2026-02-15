@@ -7,6 +7,10 @@
 
 数据库配置 —— 连接池 + Session 生命周期管理
 
+支持数据库：
+  - PostgreSQL（默认，SQLALCHEMY_DATABASE_URI）
+  - MySQL（通过 SQLALCHEMY_BINDS['mysql']，模型中声明 __bind_key__ = 'mysql' 即可使用）
+
 关键设计：
 1. 连接池（SQLAlchemy QueuePool）
    - pool_size      常驻连接数（默认 10）
@@ -29,21 +33,51 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
-
-def init_db_config(app: Flask) -> None:
-    """初始化数据库配置与连接池。"""
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("SQLALCHEMY_DATABASE_URI")
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.config["SQLALCHEMY_ECHO"] = os.getenv("SQLALCHEMY_ECHO", "false").lower() == "true"
-
-    # ── 连接池参数 ──
-    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+# ── 通用连接池参数（PostgreSQL / MySQL 共用） ──
+def _pool_options() -> dict:
+    return {
         "pool_size": int(os.getenv("DB_POOL_SIZE", "10")),
         "max_overflow": int(os.getenv("DB_MAX_OVERFLOW", "20")),
         "pool_timeout": int(os.getenv("DB_POOL_TIMEOUT", "300")),
         "pool_recycle": int(os.getenv("DB_POOL_RECYCLE", "1800")),
         "pool_pre_ping": True,
     }
+
+
+def _build_mysql_uri() -> str:
+    """从环境变量拼装 MySQL URI。"""
+    host = os.getenv("MYSQL_HOST", "127.0.0.1")
+    port = os.getenv("MYSQL_PORT", "3306")
+    user = os.getenv("MYSQL_USER", "root")
+    password = os.getenv("MYSQL_PASSWORD", "")
+    database = os.getenv("MYSQL_DATABASE", "")
+    charset = os.getenv("MYSQL_CHARSET", "utf8mb4")
+    return f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}?charset={charset}"
+
+
+def init_db_config(app: Flask) -> None:
+    """初始化数据库配置与连接池。"""
+    # ── PostgreSQL（默认库） ──
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("SQLALCHEMY_DATABASE_URI")
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config["SQLALCHEMY_ECHO"] = os.getenv("SQLALCHEMY_ECHO", "false").lower() == "true"
+
+    # 默认库连接池参数
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = _pool_options()
+
+    # ── MySQL（绑定库，bind_key='mysql'） ──
+    mysql_database = os.getenv("MYSQL_DATABASE", "")
+    if mysql_database:
+        app.config["SQLALCHEMY_BINDS"] = {
+            "mysql": {
+                "url": _build_mysql_uri(),
+                "pool_size": int(os.getenv("MYSQL_POOL_SIZE", "10")),
+                "max_overflow": int(os.getenv("MYSQL_MAX_OVERFLOW", "20")),
+                "pool_timeout": int(os.getenv("MYSQL_POOL_TIMEOUT", "300")),
+                "pool_recycle": int(os.getenv("MYSQL_POOL_RECYCLE", "1800")),
+                "pool_pre_ping": True,
+            }
+        }
 
     db.init_app(app)
 
