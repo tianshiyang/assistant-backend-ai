@@ -13,7 +13,7 @@ from typing import AsyncIterator, Any
 from flask import current_app
 from langchain.agents import create_agent
 from langchain.agents.middleware import SummarizationMiddleware
-from langchain_core.messages import HumanMessage, AnyMessage
+from langchain_core.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig
 
 from ai import chat_qianwen_llm
@@ -25,7 +25,7 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from entities.chat_response_entity import ChatResponseEntity, ChatResponseType, AgentContextSchema
 from entities.redis_entity import REDIS_CHAT_GENERATED_KEY, REDIS_CHAT_STOP_KEY
-from model.message import Message
+from model.postgres_model.message import Message
 from service.message_service import create_message_service
 from utils import get_module_logger
 

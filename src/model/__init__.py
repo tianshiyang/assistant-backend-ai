@@ -5,14 +5,14 @@
 @Author  : tianshiyang
 @File    : __init__.py
 """
-from .base_model import BaseModel
-from .account import Account
-from .dataset import Dataset
-from .document import Document
+from model.base_model import BaseModel
+from model.postgres_model import Account, Dataset, Document, Conversation, Message
 
 __all__ = [
     "BaseModel",
     "Account",
     "Dataset",
-    "Document"
+    "Document",
+    "Conversation",
+    "Message",
 ]

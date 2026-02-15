@@ -17,8 +17,8 @@ from config.db_config import db
 from ai.prompts.prompts import GENERATED_CONVERSATION_TITLE_PROMPT, GENERATED_USER_MAYBE_QUESTION_PROMPT
 from entities.chat_response_entity import ChatResponseType, ChatResponseEntity
 from entities.redis_entity import REDIS_CHAT_GENERATED_KEY, REDIS_CHAT_STOP_KEY
-from model.conversation import Conversation
-from model.message import Message
+from model.postgres_model.conversation import Conversation
+from model.postgres_model.message import Message
 from pkg.exception import FailException
 from schema.ai_schema import AIChatSchema, ConversationMessagesSchema, ConversationDeleteSchema, \
     ConversationUpdateSchema, ConversationMaybeQuestionSchema, ConversationStopSchema

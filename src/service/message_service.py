@@ -5,7 +5,7 @@
 @Author  : tianshiyang
 @File    : message_service.py
 """
-from model.message import Message
+from model.postgres_model.message import Message
 
 
 def create_message_service(

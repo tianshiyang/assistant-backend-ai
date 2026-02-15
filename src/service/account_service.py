@@ -9,7 +9,7 @@ from config.db_config import db
 from pkg.exception import FailException
 from pkg.security import check_password_hash, generate_password_hash
 from schema.account_schema import AccountUserLoginReq, AccountUserRegistrationReq
-from model.account import Account
+from model.postgres_model.account import Account
 
 def get_user_info(username: str, email: str) -> Account:
     """通过用户名或邮箱查询用户"""
