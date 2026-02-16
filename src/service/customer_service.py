@@ -17,17 +17,17 @@ from schema.customer_schema import (
 )
 
 
-def _generate_user_no() -> str:
+def _generate_customer_no() -> str:
     """生成客户业务编号：U + 年月日(YYYYMMDD) + 当日顺序号(3位)，如 U20260203003。
     查询当日最后一个客户编号，在其基础上 +1；当日无客户则从 001 开始。
     """
     date_part = datetime.now().strftime("%Y%m%d")
-    prefix = f"U{date_part}"
+    prefix = f"C{date_part}"
 
     last = (
         db.session.query(Customer)
-        .filter(Customer.user_no.like(f"{prefix}%"), Customer.deleted == 0)
-        .order_by(Customer.user_no.desc())
+        .filter(Customer.customer_no.like(f"{prefix}%"), Customer.deleted == 0)
+        .order_by(Customer.customer_no.desc())
         .first()
     )
 
@@ -36,7 +36,7 @@ def _generate_user_no() -> str:
     else:
         try:
             # 取编号后 3 位为顺序号
-            seq = int(last.user_no[-3:]) + 1
+            seq = int(last.customer_no[-3:]) + 1
         except (ValueError, IndexError):
             seq = 1
     if seq > 999:
@@ -60,10 +60,10 @@ def get_customer_by_id_service(customer_id: int) -> Customer:
 
 
 def create_customer_service(req: CreateCustomerSchema) -> Customer:
-    """新增客户（user_no 后端自动生成：查询当日最后编号 +1）"""
-    user_no = _generate_user_no()
+    """新增客户（customer_no 后端自动生成：查询当日最后编号 +1）"""
+    customer_no = _generate_customer_no()
     customer = Customer(
-        user_no=user_no,
+        customer_no=customer_no,
         name=req.name.data,
         email=req.email.data or None,
         phone=req.phone.data or None,
@@ -92,8 +92,8 @@ def update_customer_service(req: UpdateCustomerSchema) -> Customer:
 def get_customer_list_service(req: GetCustomerListSchema):
     """查询客户列表（分页）"""
     filters = [Customer.deleted == 0]
-    if req.user_no.data:
-        filters.append(Customer.user_no == req.user_no.data)
+    if req.customer_no.data:
+        filters.append(Customer.customer_no == req.customer_no.data)
     if req.name.data:
         filters.append(Customer.name.ilike(f"%{req.name.data}%"))
     if req.phone.data:

@@ -16,7 +16,7 @@ from model.base_model import BaseModel
 class Customer(BaseModel):
     __bind_key__ = "mysql"
     __tablename__ = "customer"
-    __table_args__ = (UniqueConstraint("user_no", name="user_no"),)
+    __table_args__ = (UniqueConstraint("customer_no", name="customer_no"),)
 
     id: Mapped[int] = mapped_column(
         BigInteger,
@@ -25,7 +25,7 @@ class Customer(BaseModel):
         comment="主键",
     )
 
-    user_no: Mapped[str] = mapped_column(
+    customer_no: Mapped[str] = mapped_column(
         String(64),
         nullable=False,
         comment="客户业务编号",
