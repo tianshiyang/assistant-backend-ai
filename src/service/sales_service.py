@@ -21,8 +21,8 @@ def get_sales_by_id_service(sales_id: int) -> SalesPerson:
 def get_all_sales_service(req: GetAllSalesSchema):
     """获取全部销售"""
     filters = []
-    if req.sales_name.data:
-        filters.append(SalesPerson.name.ilike(f'%{req.sales_name.data}%'))
+    if req.name.data:
+        filters.append(SalesPerson.name.ilike(f'%{req.name.data}%'))
 
     pagination = db.session.query(SalesPerson).filter(*filters).order_by(SalesPerson.created_at.desc()).paginate(
         page=int(req.page_no.data),

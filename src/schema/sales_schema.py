@@ -16,7 +16,7 @@ class GetSalesByIdSchema(FlaskForm):
     sales_id = IntegerField('sales_id', validators=[DataRequired()])
 
 class GetAllSalesSchema(PaginationSchema):
-    sales_name = StringField('sales_name', validators=[])
+    name = StringField('name', validators=[])
 
 class UpdateSalesSchema(FlaskForm):
     sales_id = IntegerField('sales_id', validators=[DataRequired()])
