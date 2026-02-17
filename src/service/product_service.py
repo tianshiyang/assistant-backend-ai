@@ -15,7 +15,7 @@ def get_product_category_list_service(req: GetProductCategoryListSchema) -> Pagi
     """获取商品分类列表"""
     filters = []
     if req.category_name.data:
-        filters.append(ProductCategory.category_name.like('%' + req.category_name.data + '%'))
+        filters.append(ProductCategory.category_name.ilike('%' + req.category_name.data + '%'))
     paginate = db.session.query(ProductCategory).filter(*filters).order_by(ProductCategory.created_at.desc()).paginate(
         page=int(req.page_no.data),
         per_page=int(req.page_size.data),
