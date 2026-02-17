@@ -11,6 +11,7 @@ from .document_router import document_blueprint
 from .ai_router import ai_blueprint
 from .sales_routes import sales_blueprint
 from .customer_router import customer_blueprint
+from .product_router import product_blueprint
 
 __all__ = [
     "account_blueprint",
@@ -19,4 +20,5 @@ __all__ = [
     "ai_blueprint",
     "sales_blueprint",
     "customer_blueprint",
+    "product_blueprint"
 ]

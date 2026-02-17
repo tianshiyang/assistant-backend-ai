@@ -3,7 +3,7 @@
 """
 @Time    : 2026/2/16
 @Author  : tianshiyang
-@File    : product.py
+@File    : product_router.py
 商品模型（对应表 product）
 """
 
