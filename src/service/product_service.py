@@ -7,8 +7,9 @@
 """
 from config.db_config import db
 from entities.base_entity import Pagination
+from model.mysql_model.product import Product
 from model.mysql_model.product_category import ProductCategory
-from schema.product_schema import GetProductCategoryListSchema
+from schema.product_schema import GetProductCategoryListSchema, GetProductListSchema
 
 
 def get_product_category_list_service(req: GetProductCategoryListSchema) -> Pagination[ProductCategory]:
@@ -21,4 +22,19 @@ def get_product_category_list_service(req: GetProductCategoryListSchema) -> Pagi
         per_page=int(req.page_size.data),
         error_out=False
     )
+    return paginate
+
+def get_product_list_service(req: GetProductListSchema) -> Pagination[Product]:
+    """获取商品列表"""
+    filter_product = []
+
+    if req.name.data:
+        filter_product.append(Product.name.ilike('%' + req.name.data + '%'))
+
+    paginate = db.session.query(Product).filter(*filter_product).order_by(Product.created_at.desc()).paginate(
+        page=int(req.page_no.data),
+        per_page=int(req.page_size.data),
+        error_out=False
+    )
+
     return paginate

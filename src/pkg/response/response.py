@@ -9,6 +9,7 @@ import json as json_module
 from dataclasses import dataclass, field, asdict
 from typing import Any
 from enum import Enum
+from decimal import Decimal
 import uuid
 
 from flask import Response as FlaskResponse
@@ -24,11 +25,15 @@ class Response:
 
 
 class JSONEncoder(json_module.JSONEncoder):
-    """自定义 JSON 编码器，处理枚举、UUID 和其他特殊类型"""
+    """自定义 JSON 编码器，处理枚举、UUID、Decimal 和其他特殊类型"""
+
     def default(self, obj):
         if isinstance(obj, Enum):
             return obj.value
         if isinstance(obj, uuid.UUID):
+            return str(obj)
+        if isinstance(obj, Decimal):
+            # 金额类字段使用字符串返回，避免精度丢失
             return str(obj)
         return super().default(obj)
 

@@ -7,9 +7,12 @@
 """
 from flask import Blueprint
 
-from handler.product_handler import get_product_category_list_handler
+from handler.product_handler import get_product_category_list_handler, get_product_list_handler
 
 product_blueprint = Blueprint("product_blueprint", __name__, url_prefix="")
 
 # 获取商品分类列表
 product_blueprint.add_url_rule("/api/manage/product/category/list", view_func=get_product_category_list_handler)
+
+# 获取商品列表
+product_blueprint.add_url_rule("/api/manage/product/list", view_func=get_product_list_handler)
