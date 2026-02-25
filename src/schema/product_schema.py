@@ -20,5 +20,5 @@ class GetProductListAllSchema(FlaskForm):
 
 class GetProductListSchema(PaginationSchema):
     name = StringField(default="", validators=[])
-    category_id = IntegerField(validators=[])
+    category_id = StringField(default="", validators=[])
     product_no = StringField(default="", validators=[])
