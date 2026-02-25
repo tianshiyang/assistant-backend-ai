@@ -15,6 +15,9 @@ from schema.base_schema import PaginationSchema
 class GetProductCategoryListSchema(PaginationSchema):
     category_name = StringField(default="", validators=[])
 
+class GetProductListAllSchema(FlaskForm):
+    name = StringField(default="", validators=[])
+
 class GetProductListSchema(PaginationSchema):
     name = StringField(default="", validators=[])
     category_id = IntegerField(validators=[])

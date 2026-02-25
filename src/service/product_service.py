@@ -5,13 +5,15 @@
 @Author  : tianshiyang
 @File    : product_service.py
 """
+from typing import List
+
 from sqlalchemy.orm import joinedload
 
 from config.db_config import db
 from entities.base_entity import Pagination
 from model.mysql_model.product import Product
 from model.mysql_model import ProductCategory
-from schema.product_schema import GetProductCategoryListSchema, GetProductListSchema
+from schema.product_schema import GetProductCategoryListSchema, GetProductListSchema, GetProductListAllSchema
 
 
 def get_product_category_list_service(req: GetProductCategoryListSchema) -> Pagination[ProductCategory]:
@@ -25,6 +27,14 @@ def get_product_category_list_service(req: GetProductCategoryListSchema) -> Pagi
         error_out=False
     )
     return paginate
+
+def get_product_category_list_all_service(req: GetProductListAllSchema) -> List[ProductCategory]:
+    """获取商品分类列表 -- 不分页"""
+    filter_category = []
+    if req.name.data:
+        filter_category.append(ProductCategory.name.ilike('%' + req.name.data + '%'))
+    category_all_list = db.session.query(ProductCategory).filter(*filter_category).order_by(ProductCategory.created_at.desc()).all()
+    return category_all_list
 
 def get_product_list_service(req: GetProductListSchema) -> Pagination[Product]:
     """获取商品列表"""
