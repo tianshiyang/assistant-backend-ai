@@ -13,8 +13,9 @@ from config.db_config import db
 from entities.base_entity import Pagination
 from model.mysql_model.product import Product
 from model.mysql_model import ProductCategory
+from pkg.exception import FailException
 from schema.product_schema import GetProductCategoryListSchema, GetProductListSchema, GetProductListAllSchema, \
-    GetProductDetailSchema
+    GetProductDetailSchema, ProductUpdateSchema
 
 
 def get_product_category_list_service(req: GetProductCategoryListSchema) -> Pagination[ProductCategory]:
@@ -66,8 +67,26 @@ def get_product_list_service(req: GetProductListSchema) -> Pagination[Product]:
     return paginate
 
 
-def get_product_detail_service(req: GetProductDetailSchema) -> Product:
+def get_product_detail_service(product_id: int) -> Product:
     """获取商品详情"""
-    return db.session.query(Product).filter(
-        Product.id == req.id.data
+    result = db.session.query(Product).filter(
+        Product.id == product_id
     ).first()
+    if not result:
+        raise FailException("商品不存在")
+    return result
+
+def update_product_service(req: ProductUpdateSchema) -> Product:
+    """更新商品信息"""
+    product = get_product_detail_service(req.id.data)
+    data = {}
+    if req.name.data:
+        data["name"] = req.name.data
+    if req.category_id.data:
+        data["category_id"] = req.category_id.data
+    if req.standard_price.data:
+        data["standard_price"] = req.standard_price.data
+    if req.cost_price.data:
+        data["cost_price"] = req.cost_price.data
+    product.update(**data)
+    return product

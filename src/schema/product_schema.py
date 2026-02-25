@@ -28,3 +28,12 @@ class GetProductDetailSchema(FlaskForm):
     id = StringField(default="", validators=[
         DataRequired("商品id必传")
     ])
+
+class ProductUpdateSchema(FlaskForm):
+    id = StringField(default="", validators=[
+        DataRequired("商品id必传")
+    ])
+    name = StringField(default="", validators=[])
+    category_id = StringField(default="", validators=[])
+    standard_price = StringField(default="", validators=[])
+    cost_price = StringField(default="", validators=[])

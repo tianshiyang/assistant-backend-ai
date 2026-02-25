@@ -9,9 +9,9 @@ from flask import request
 
 from pkg.response import validate_error_json, success_json
 from schema.product_schema import GetProductCategoryListSchema, GetProductListSchema, GetProductListAllSchema, \
-    GetProductDetailSchema
+    GetProductDetailSchema, ProductUpdateSchema
 from service.product_service import get_product_category_list_service, get_product_list_service, \
-    get_product_category_list_all_service, get_product_detail_service
+    get_product_category_list_all_service, get_product_detail_service, update_product_service
 from utils import transform_pagination_data
 
 
@@ -44,5 +44,13 @@ def get_product_detail_handler():
     req = GetProductDetailSchema(request.args)
     if not req.validate():
         return validate_error_json(req.errors)
-    result = get_product_detail_service(req)
+    result = get_product_detail_service(req.id.data)
+    return success_json(result.to_dict())
+
+def update_product_handler():
+    """更新商品"""
+    req = ProductUpdateSchema()
+    if not req.validate():
+        return validate_error_json(req.errors)
+    result = update_product_service(req)
     return success_json(result.to_dict())
