@@ -5,6 +5,7 @@
 @Author  : tianshiyang
 @File    : product_service.py
 """
+from datetime import datetime
 from typing import List
 
 from sqlalchemy.orm import joinedload
@@ -15,7 +16,7 @@ from model.mysql_model.product import Product
 from model.mysql_model import ProductCategory
 from pkg.exception import FailException
 from schema.product_schema import GetProductCategoryListSchema, GetProductListSchema, GetProductListAllSchema, \
-    GetProductDetailSchema, ProductUpdateSchema
+    GetProductDetailSchema, ProductUpdateSchema, ProductCreateSchema
 
 
 def get_product_category_list_service(req: GetProductCategoryListSchema) -> Pagination[ProductCategory]:
@@ -66,6 +67,32 @@ def get_product_list_service(req: GetProductListSchema) -> Pagination[Product]:
 
     return paginate
 
+def _generate_product_no() -> str:
+    """生成商品编号：P + 年月日(YYYYMMDD) + 当日顺序号(3位)，如 P20260225001。
+    查询当日最后一个商品编号，在其基础上 +1；当日无商品则从 001 开始。
+    """
+    date_part = datetime.now().strftime("%Y%m%d")
+    prefix = f"P{date_part}"
+
+    last = (
+        db.session.query(Product)
+        .filter(Product.product_no.like(f"{prefix}%"), Product.deleted == 0)
+        .order_by(Product.product_no.desc())
+        .first()
+    )
+
+    if last is None:
+        seq = 1
+    else:
+        try:
+            # 取编号后 3 位为顺序号
+            seq = int(last.customer_no[-3:]) + 1
+        except (ValueError, IndexError):
+            seq = 1
+    if seq > 999:
+        raise FailException("当日新增商品已达上限，请明日再试")
+    return f"{prefix}{str(seq).zfill(3)}"
+
 
 def get_product_detail_service(product_id: int) -> Product:
     """获取商品详情"""
@@ -90,3 +117,15 @@ def update_product_service(req: ProductUpdateSchema) -> Product:
         data["cost_price"] = req.cost_price.data
     product.update(**data)
     return product
+
+def create_product_service(req: ProductCreateSchema) -> Product:
+    """新增商品"""
+    product_no = _generate_product_no()
+    result = Product(
+        name=req.name.data,
+        product_no=product_no,
+        category_id=req.category_id.data,
+        standard_price=req.standard_price.data,
+        cost_price=req.cost_price.data,
+    ).create()
+    return result

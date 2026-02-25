@@ -37,3 +37,17 @@ class ProductUpdateSchema(FlaskForm):
     category_id = StringField(default="", validators=[])
     standard_price = StringField(default="", validators=[])
     cost_price = StringField(default="", validators=[])
+
+class ProductCreateSchema(FlaskForm):
+    name = StringField(default="", validators=[
+        DataRequired("商品名称必填")
+    ])
+    category_id = StringField(default="", validators=[
+        DataRequired("商品分类必填")
+    ])
+    standard_price = StringField(default="", validators=[
+        DataRequired("标准售价")
+    ])
+    cost_price = StringField(default="", validators=[
+        DataRequired("成本价")
+    ])
