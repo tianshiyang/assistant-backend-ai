@@ -8,7 +8,8 @@
 from flask import Blueprint
 
 from handler.product_handler import get_product_category_list_handler, get_product_list_handler, \
-    get_product_list_all_handler, get_product_detail_handler, update_product_handler, create_product_handler
+    get_product_list_all_handler, get_product_detail_handler, update_product_handler, create_product_handler, \
+    delete_product_handler
 
 product_blueprint = Blueprint("product_blueprint", __name__, url_prefix="")
 
@@ -29,3 +30,6 @@ product_blueprint.add_url_rule("/api/manage/product/update", methods=["POST"], v
 
 # 创建商品
 product_blueprint.add_url_rule("/api/manage/product/create", methods=["POST"], view_func=create_product_handler)
+
+# 删除商品
+product_blueprint.add_url_rule("/api/manage/product/delete", methods=["POST"], view_func=delete_product_handler)

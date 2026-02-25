@@ -7,11 +7,12 @@
 """
 from flask import request
 
-from pkg.response import validate_error_json, success_json
+from pkg.response import validate_error_json, success_json, success_message
 from schema.product_schema import GetProductCategoryListSchema, GetProductListSchema, GetProductListAllSchema, \
-    GetProductDetailSchema, ProductUpdateSchema, ProductCreateSchema
+    GetProductDetailSchema, ProductUpdateSchema, ProductCreateSchema, DeleteProductSchema
 from service.product_service import get_product_category_list_service, get_product_list_service, \
-    get_product_category_list_all_service, get_product_detail_service, update_product_service, create_product_service
+    get_product_category_list_all_service, get_product_detail_service, update_product_service, create_product_service, \
+    delete_product_service
 from utils import transform_pagination_data
 
 
@@ -62,3 +63,11 @@ def create_product_handler():
         return validate_error_json(req.errors)
     result = create_product_service(req)
     return success_json(result.to_dict())
+
+def delete_product_handler():
+    """删除商品"""
+    req = DeleteProductSchema()
+    if not req.validate():
+        return validate_error_json(req.errors)
+    delete_product_service(req)
+    return success_message("删除成功")

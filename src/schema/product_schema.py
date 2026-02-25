@@ -29,6 +29,11 @@ class GetProductDetailSchema(FlaskForm):
         DataRequired("商品id必传")
     ])
 
+class DeleteProductSchema(FlaskForm):
+    id = StringField(default="", validators=[
+        DataRequired("商品id必传")
+    ])
+
 class ProductUpdateSchema(FlaskForm):
     id = StringField(default="", validators=[
         DataRequired("商品id必传")

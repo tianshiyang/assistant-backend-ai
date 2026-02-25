@@ -16,7 +16,7 @@ from model.mysql_model.product import Product
 from model.mysql_model import ProductCategory
 from pkg.exception import FailException
 from schema.product_schema import GetProductCategoryListSchema, GetProductListSchema, GetProductListAllSchema, \
-    GetProductDetailSchema, ProductUpdateSchema, ProductCreateSchema
+    GetProductDetailSchema, ProductUpdateSchema, ProductCreateSchema, DeleteProductSchema
 
 
 def get_product_category_list_service(req: GetProductCategoryListSchema) -> Pagination[ProductCategory]:
@@ -129,3 +129,9 @@ def create_product_service(req: ProductCreateSchema) -> Product:
         cost_price=req.cost_price.data,
     ).create()
     return result
+
+def delete_product_service(req: DeleteProductSchema) -> Product:
+    """删除商品"""
+    product = get_product_detail_service(req.id.data)
+    product.delete()
+    return product
