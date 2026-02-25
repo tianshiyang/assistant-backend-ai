@@ -5,3 +5,13 @@
 @Author  : tianshiyang
 @File    : __init__.py.py
 """
+from .customer import Customer
+from .product import Product, ProductCategory
+from .sales_person import SalesPerson
+
+__all__ = [
+    'Customer',
+    'Product',
+    'ProductCategory',
+    'SalesPerson',
+]
