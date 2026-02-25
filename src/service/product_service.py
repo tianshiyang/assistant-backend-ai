@@ -32,6 +32,10 @@ def get_product_list_service(req: GetProductListSchema) -> Pagination[Product]:
 
     if req.name.data:
         filter_product.append(Product.name.ilike('%' + req.name.data + '%'))
+    if req.category_id.data:
+        filter_product.append(Product.category_id ==  req.category_id.data)
+    if req.product_no.data:
+        filter_product.append(Product.product_no.data == req.product_no.data)
 
     paginate = (
         db.session.query(Product)

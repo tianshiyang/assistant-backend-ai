@@ -7,6 +7,7 @@
 """
 from flask_wtf import FlaskForm
 from wtforms import StringField
+from wtforms.fields.numeric import IntegerField
 
 from schema.base_schema import PaginationSchema
 
@@ -16,3 +17,5 @@ class GetProductCategoryListSchema(PaginationSchema):
 
 class GetProductListSchema(PaginationSchema):
     name = StringField(default="", validators=[])
+    category_id = IntegerField(validators=[])
+    product_no = StringField(default="", validators=[])
