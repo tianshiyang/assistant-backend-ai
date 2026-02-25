@@ -8,7 +8,7 @@
 from flask import Blueprint
 
 from handler.product_handler import get_product_category_list_handler, get_product_list_handler, \
-    get_product_list_all_handler
+    get_product_list_all_handler, get_product_detail_handler
 
 product_blueprint = Blueprint("product_blueprint", __name__, url_prefix="")
 
@@ -20,3 +20,9 @@ product_blueprint.add_url_rule("/api/manage/product/category/list/all", view_fun
 
 # 获取商品列表
 product_blueprint.add_url_rule("/api/manage/product/list", view_func=get_product_list_handler)
+
+# 获取商品详情
+product_blueprint.add_url_rule("/api/manage/product/detail", view_func=get_product_detail_handler)
+
+# 编辑商品信息
+

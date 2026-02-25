@@ -8,6 +8,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField
 from wtforms.fields.numeric import IntegerField
+from wtforms.validators import DataRequired
 
 from schema.base_schema import PaginationSchema
 
@@ -22,3 +23,8 @@ class GetProductListSchema(PaginationSchema):
     name = StringField(default="", validators=[])
     category_id = StringField(default="", validators=[])
     product_no = StringField(default="", validators=[])
+
+class GetProductDetailSchema(FlaskForm):
+    id = StringField(default="", validators=[
+        DataRequired("商品id必传")
+    ])

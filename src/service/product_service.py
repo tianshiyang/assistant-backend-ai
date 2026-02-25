@@ -13,7 +13,8 @@ from config.db_config import db
 from entities.base_entity import Pagination
 from model.mysql_model.product import Product
 from model.mysql_model import ProductCategory
-from schema.product_schema import GetProductCategoryListSchema, GetProductListSchema, GetProductListAllSchema
+from schema.product_schema import GetProductCategoryListSchema, GetProductListSchema, GetProductListAllSchema, \
+    GetProductDetailSchema
 
 
 def get_product_category_list_service(req: GetProductCategoryListSchema) -> Pagination[ProductCategory]:
@@ -63,3 +64,10 @@ def get_product_list_service(req: GetProductListSchema) -> Pagination[Product]:
     )
 
     return paginate
+
+
+def get_product_detail_service(req: GetProductDetailSchema) -> Product:
+    """获取商品详情"""
+    return db.session.query(Product).filter(
+        Product.id == req.id.data
+    ).first()
