@@ -7,7 +7,7 @@
 """
 from flask import Blueprint
 
-from handler.order_handler import get_order_list_handler, create_order_handler
+from handler.order_handler import get_order_list_handler, create_order_handler, pay_order_handler, get_order_detail_handler
 
 order_blueprint = Blueprint("order", __name__)
 
@@ -16,3 +16,9 @@ order_blueprint.add_url_rule("/api/manage/order/list", view_func=get_order_list_
 
 # 新增订单
 order_blueprint.add_url_rule("/api/manage/order/create", methods=["POST"], view_func=create_order_handler)
+
+# 获取订单详情
+order_blueprint.add_url_rule("/api/manage/order/detail", view_func=get_order_detail_handler)
+
+# 支付
+order_blueprint.add_url_rule("/api/manage/order/pay", methods=["post"], view_func=pay_order_handler)

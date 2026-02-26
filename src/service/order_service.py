@@ -16,7 +16,7 @@ from entities.base_entity import Pagination
 from entities.order_entity import OrderStatus
 from model.mysql_model import Orders, OrderItem
 from pkg.exception import FailException
-from schema.order_schema import GetOrderListSchema, CreateOrderSchema
+from schema.order_schema import GetOrderListSchema, CreateOrderSchema, PayOrderSchema
 from service.product_service import get_product_detail_service
 
 
@@ -105,6 +105,34 @@ def create_order_service(req: CreateOrderSchema) -> Orders:
     except Exception:
         db.session.rollback()
         raise
+    return order
 
+def get_order_detail_service(order_id: int) -> Orders:
+    order = db.session.query(Orders).filter(Orders.id == order_id).first()
+    if order is None:
+        raise FailException("订单不存在")
+    return order
 
+def pay_order_service(req: PayOrderSchema) -> Orders:
+    """支付订单"""
+    order_id = req.order_id.data
+    order = get_order_detail_service(order_id)
+    paid_amount = order.paid_amount
+    remaining_amount = order.total_amount - paid_amount
+    pay_amount = req.pay_amount.data
+    if remaining_amount < pay_amount:
+        raise FailException("支付金额大于剩余金额")
+
+    if remaining_amount == pay_amount:
+        # 支付完成
+        order.update(
+            paid_amount=order.paid_amount + pay_amount,
+            order_status=OrderStatus.COMPLETED.value,
+        )
+    if remaining_amount > pay_amount:
+        # 支付中
+        order.update(
+            paid_amount=order.paid_amount + pay_amount,
+            order_status=OrderStatus.PAID.value,
+        )
     return order
