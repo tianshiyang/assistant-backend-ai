@@ -13,7 +13,7 @@ from pkg.exception import FailException
 from schema.customer_schema import (
     CreateCustomerSchema,
     UpdateCustomerSchema,
-    GetCustomerListSchema,
+    GetCustomerListSchema, GetCustomerAllListSchema,
 )
 
 
@@ -112,3 +112,12 @@ def get_customer_list_service(req: GetCustomerListSchema):
         )
     )
     return pagination
+
+def get_customer_all_list_service(req: GetCustomerAllListSchema):
+    """查询客户列表（不分页）"""
+    filters = [Customer.deleted == 0]
+    if req.name.data:
+        filters.append(Customer.name.ilike(f"%{req.name.data}%"))
+
+    customer = db.session.query(Customer).filter(*filters).order_by(Customer.created_at.desc())
+    return customer

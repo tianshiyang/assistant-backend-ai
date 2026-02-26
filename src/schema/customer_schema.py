@@ -40,3 +40,7 @@ class GetCustomerListSchema(PaginationSchema):
     name = StringField("name", validators=[Optional()])
     phone = StringField("phone", validators=[Optional()])
     status = IntegerField("status", validators=[Optional()])
+
+class GetCustomerAllListSchema(FlaskForm):
+    """客户列表查询"""
+    name = StringField("name", validators=[Optional()])

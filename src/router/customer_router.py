@@ -13,6 +13,7 @@ from handler.customer_handler import (
     update_customer_handler,
     get_customer_list_handler,
     get_customer_detail_handler,
+    get_customer_all_list_handler,
 )
 
 customer_blueprint = Blueprint("customer", __name__, url_prefix="")
@@ -43,4 +44,10 @@ customer_blueprint.add_url_rule(
     "/api/manage/customer/detail",
     methods=["GET"],
     view_func=get_customer_detail_handler,
+)
+
+# 获取所有客户，不分页
+customer_blueprint.add_url_rule(
+    "/api/manage/customer/all_list",
+    view_func=get_customer_all_list_handler
 )

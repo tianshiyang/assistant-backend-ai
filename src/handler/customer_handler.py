@@ -13,13 +13,13 @@ from schema.customer_schema import (
     CreateCustomerSchema,
     UpdateCustomerSchema,
     GetCustomerDetailSchema,
-    GetCustomerListSchema,
+    GetCustomerListSchema, GetCustomerAllListSchema,
 )
 from service.customer_service import (
     create_customer_service,
     update_customer_service,
     get_customer_by_id_service,
-    get_customer_list_service,
+    get_customer_list_service, get_customer_all_list_service,
 )
 from utils import transform_pagination_data
 
@@ -52,6 +52,15 @@ def get_customer_list_handler():
         return validate_error_json(req.errors)
     pagination = get_customer_list_service(req)
     return success_json(transform_pagination_data(pagination))
+
+@jwt_required()
+def get_customer_all_list_handler():
+    """查询客户列表"""
+    req = GetCustomerAllListSchema(request.args)
+    if not req.validate():
+        return validate_error_json(req.errors)
+    customers = get_customer_all_list_service(req)
+    return success_json([item.to_dict() for item in customers])
 
 
 @jwt_required()
