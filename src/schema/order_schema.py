@@ -33,3 +33,6 @@ class PayOrderSchema(FlaskForm):
 
 class CancelPayOrderSchema(FlaskForm):
     order_id = IntegerField(validators=[DataRequired("订单id必传")])
+
+class DeleteOrderSchema(FlaskForm):
+    order_id = IntegerField(validators=[DataRequired("订单id必传")])

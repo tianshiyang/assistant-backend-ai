@@ -16,7 +16,8 @@ from entities.base_entity import Pagination
 from entities.order_entity import OrderStatus
 from model.mysql_model import Orders, OrderItem
 from pkg.exception import FailException
-from schema.order_schema import GetOrderListSchema, CreateOrderSchema, PayOrderSchema, CancelPayOrderSchema
+from schema.order_schema import GetOrderListSchema, CreateOrderSchema, PayOrderSchema, CancelPayOrderSchema, \
+    DeleteOrderSchema
 from service.product_service import get_product_detail_service
 
 
@@ -142,4 +143,11 @@ def cancel_pay_order_service(req: CancelPayOrderSchema) -> Orders:
     order_id = req.order_id.data
     order = get_order_detail_service(order_id)
     order.update(order_status=OrderStatus.CANCELED.value)
+    return order
+
+def delete_order_service(req: DeleteOrderSchema) -> Orders:
+    order_id = req.order_id.data
+    order = get_order_detail_service(order_id)
+    db.session.query(OrderItem).filter(OrderItem.order_id == order_id).delete()
+    order.delete()
     return order

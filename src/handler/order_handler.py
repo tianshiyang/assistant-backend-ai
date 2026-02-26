@@ -9,9 +9,9 @@ from flask import request
 
 from pkg.response import validate_error_json, success_json, success_message
 from schema.order_schema import GetOrderListSchema, CreateOrderSchema, PayOrderSchema, GetOrderDetailSchema, \
-    CancelPayOrderSchema
+    CancelPayOrderSchema, DeleteOrderSchema
 from service.order_service import get_order_list_service, create_order_service, pay_order_service, \
-    get_order_detail_service, cancel_pay_order_service
+    get_order_detail_service, cancel_pay_order_service, delete_order_service
 from utils import transform_pagination_data
 
 
@@ -51,8 +51,14 @@ def cancel_pay_order_handler():
     """取消支付"""
     req = CancelPayOrderSchema()
 
-    print(req.order_id.data, '-a-a-aa-a--a')
     if not req.validate():
         return validate_error_json(req.errors)
     cancel_pay_order_service(req)
     return success_message("取消订单成功")
+
+def delete_order_handler():
+    req = DeleteOrderSchema()
+    if not req.validate():
+        return validate_error_json(req.errors)
+    delete_order_service(req)
+    return success_message("删除订单成功")
