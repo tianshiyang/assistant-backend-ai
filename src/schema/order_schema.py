@@ -16,6 +16,7 @@ from schema.base_schema import PaginationSchema
 class GetOrderListSchema(PaginationSchema):
     """获取商品列表"""
     order_no = StringField(validators=[])
+    order_status = StringField(validators=[])
 
 class GetOrderDetailSchema(FlaskForm):
     """获取商品列表"""

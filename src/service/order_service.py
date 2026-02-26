@@ -53,6 +53,8 @@ def get_order_list_service(req: GetOrderListSchema) -> Pagination[Orders]:
     filters = []
     if req.order_no.data:
         filters.append(Orders.order_no == req.order_no.data)
+    if req.order_status.data:
+        filters.append(Orders.order_status == req.order_status.data)
 
     pagination = (
         db.session.query(Orders)
