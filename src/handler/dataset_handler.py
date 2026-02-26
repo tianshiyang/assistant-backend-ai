@@ -61,13 +61,8 @@ def get_dataset_list_handler():
 def get_dataset_detail_handler():
     """获取知识库详情"""
     req = GetDataSetDetailSchema(formdata=request.args)
-    
     if not req.validate():
         return validate_error_json(req.errors)
-
-
     user_id = get_jwt_identity()
-
     dataset = get_dataset_detail_service(req, user_id)
-
     return success_json(dataset.to_dict())

@@ -6,6 +6,7 @@
 @File    : order_handler.py
 """
 from flask import request
+from flask_jwt_extended import jwt_required
 
 from pkg.response import validate_error_json, success_json, success_message
 from schema.order_schema import GetOrderListSchema, CreateOrderSchema, PayOrderSchema, GetOrderDetailSchema, \
@@ -14,7 +15,7 @@ from service.order_service import get_order_list_service, create_order_service, 
     get_order_detail_service, cancel_pay_order_service, delete_order_service
 from utils import transform_pagination_data
 
-
+@jwt_required()
 def get_order_list_handler():
     """获取商品列表"""
     req = GetOrderListSchema(request.args)
@@ -23,6 +24,7 @@ def get_order_list_handler():
     pagination = get_order_list_service(req)
     return success_json(transform_pagination_data(pagination))
 
+@jwt_required()
 def create_order_handler():
     """新增订单"""
     req = CreateOrderSchema()
@@ -31,6 +33,7 @@ def create_order_handler():
     create_order_service(req)
     return success_message("创建成功")
 
+@jwt_required()
 def get_order_detail_handler():
     """获取订单详情"""
     req = GetOrderDetailSchema(request.args)
@@ -39,6 +42,7 @@ def get_order_detail_handler():
     order = get_order_detail_service(req.order_id.data)
     return success_json(order.to_dict())
 
+@jwt_required()
 def pay_order_handler():
     """支付订单"""
     req = PayOrderSchema()
@@ -47,6 +51,7 @@ def pay_order_handler():
     pay_order_service(req)
     return success_json("支付成功")
 
+@jwt_required()
 def cancel_pay_order_handler():
     """取消支付"""
     req = CancelPayOrderSchema()
@@ -56,6 +61,7 @@ def cancel_pay_order_handler():
     cancel_pay_order_service(req)
     return success_message("取消订单成功")
 
+@jwt_required()
 def delete_order_handler():
     req = DeleteOrderSchema()
     if not req.validate():

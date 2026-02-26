@@ -6,6 +6,7 @@
 @File    : product_handler.py
 """
 from flask import request
+from flask_jwt_extended import jwt_required
 
 from pkg.response import validate_error_json, success_json, success_message
 from schema.product_schema import GetProductCategoryListSchema, GetProductListSchema, GetProductCategoryListAllSchema, \
@@ -15,7 +16,7 @@ from service.product_service import get_product_category_list_service, get_produ
     delete_product_service, get_product_list_all_service
 from utils import transform_pagination_data
 
-
+@jwt_required()
 def get_product_category_list_handler():
     """获取商品分类列表"""
     req = GetProductCategoryListSchema(request.args)
@@ -24,6 +25,7 @@ def get_product_category_list_handler():
     paginate = get_product_category_list_service(req)
     return success_json(transform_pagination_data(paginate))
 
+@jwt_required()
 def get_product_category_list_all_handler():
     """获取商品分类列表，不分页"""
     req = GetProductCategoryListAllSchema(request.args)
@@ -32,6 +34,7 @@ def get_product_category_list_all_handler():
     result = get_product_category_list_all_service(req)
     return success_json([item.to_dict() for item in result])
 
+@jwt_required()
 def get_product_list_handler():
     """获取商品列表"""
     req = GetProductListSchema(request.args)
@@ -40,6 +43,7 @@ def get_product_list_handler():
     paginate = get_product_list_service(req)
     return success_json(transform_pagination_data(paginate))
 
+@jwt_required()
 def get_product_list_all_handler():
     """获取所有商品不分页"""
     req = GetProductListAllSchema(request.args)
@@ -48,6 +52,7 @@ def get_product_list_all_handler():
     products = get_product_list_all_service(req)
     return success_json([item.to_dict() for item in products])
 
+@jwt_required()
 def get_product_detail_handler():
     """获取商品详情"""
     req = GetProductDetailSchema(request.args)
@@ -56,6 +61,7 @@ def get_product_detail_handler():
     result = get_product_detail_service(req.id.data)
     return success_json(result.to_dict())
 
+@jwt_required()
 def update_product_handler():
     """更新商品"""
     req = ProductUpdateSchema()
@@ -64,6 +70,7 @@ def update_product_handler():
     result = update_product_service(req)
     return success_json(result.to_dict())
 
+@jwt_required()
 def create_product_handler():
     """新增商品"""
     req = ProductCreateSchema()
@@ -72,6 +79,7 @@ def create_product_handler():
     result = create_product_service(req)
     return success_json(result.to_dict())
 
+@jwt_required()
 def delete_product_handler():
     """删除商品"""
     req = DeleteProductSchema()
