@@ -6,6 +6,7 @@
 @File    : order_schema.py
 """
 from flask_wtf import FlaskForm
+from wtforms.fields.numeric import IntegerField
 from wtforms.fields.simple import StringField
 from wtforms.validators import DataRequired
 
@@ -15,3 +16,9 @@ from schema.base_schema import PaginationSchema
 class GetOrderListSchema(PaginationSchema):
     """获取商品列表"""
     order_no = StringField(validators=[])
+
+class CreateOrderSchema(FlaskForm):
+    sales_id = IntegerField(validators=[DataRequired("销售id必传")])
+    customer_id = IntegerField(validators=[DataRequired("客户id必传")])
+    product_id = IntegerField(validators=[DataRequired("商品id必传")])
+    quantity = IntegerField(validators=[DataRequired("购买数量必传")])

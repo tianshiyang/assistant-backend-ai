@@ -19,7 +19,7 @@ from model.base_model import BaseModel
 from utils import format_time
 
 if TYPE_CHECKING:
-    from model.mysql_model import SalesPerson, Product
+    from model.mysql_model import SalesPerson, Product, Customer
 
 
 class Orders(BaseModel):
@@ -90,6 +90,11 @@ class Orders(BaseModel):
         back_populates="orders"
     )
 
+    customer: Mapped["Customer"] = relationship(
+        "Customer",
+        back_populates="orders"
+    )
+
     order_item: Mapped[list["OrderItem"]] = relationship(
         "OrderItem",
         back_populates="orders"
@@ -100,6 +105,7 @@ class Orders(BaseModel):
         data = super().to_dict()
         data["order_date"] = format_time(data["order_date"])
         data["sales_name"] = self.sales.name if self.sales else None
+        data["customer_name"] = self.customer.name if self.customer else None
         data["order_item"] = [item.to_dict() for item in self.order_item] if self.order_item else []
         return data
 

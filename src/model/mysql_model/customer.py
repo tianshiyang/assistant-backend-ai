@@ -6,12 +6,16 @@
 @File    : customer_router.py
 客户模型（与表 customer 一致）
 """
+from __future__ import annotations
+from typing import TYPE_CHECKING
 
 from sqlalchemy import String, BigInteger, SmallInteger, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from model.base_model import BaseModel
 
+if TYPE_CHECKING:
+    from model.mysql_model import Orders
 
 class Customer(BaseModel):
     __bind_key__ = "mysql"
@@ -61,4 +65,9 @@ class Customer(BaseModel):
         nullable=False,
         default=0,
         comment="软删除标识",
+    )
+
+    orders: Mapped[list["Orders"]] = relationship(
+        "Orders",
+        back_populates="customer",
     )

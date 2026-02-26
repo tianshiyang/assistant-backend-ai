@@ -85,7 +85,7 @@ def _generate_product_no() -> str:
 
     last = (
         db.session.query(Product)
-        .filter(Product.product_no.like(f"{prefix}%"), Product.deleted == 0)
+        .filter(Product.product_no.like(f"{prefix}%"))
         .order_by(Product.product_no.desc())
         .first()
     )
