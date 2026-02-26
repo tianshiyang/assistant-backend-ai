@@ -5,10 +5,12 @@
 @Author  : tianshiyang
 @File    : sales_service.py
 """
+from typing import List
+
 from config.db_config import db
 from model.mysql_model.sales_person import SalesPerson
 from pkg.exception import FailException
-from schema.sales_schema import GetSalesByIdSchema, GetAllSalesSchema, UpdateSalesSchema
+from schema.sales_schema import GetSalesByIdSchema, GetAllSalesSchema, UpdateSalesSchema, GetAllSalesNoPaginationSchema
 
 
 def get_sales_by_id_service(sales_id: int) -> SalesPerson:
@@ -30,6 +32,15 @@ def get_all_sales_service(req: GetAllSalesSchema):
         error_out=False
     )
     return pagination
+
+def get_all_sales_no_pagination_service(req: GetAllSalesNoPaginationSchema) -> List[SalesPerson]:
+    """获取全部销售(不分页)"""
+    filters = []
+    if req.name.data:
+        filters.append(SalesPerson.name.ilike(f'%{req.name.data}%'))
+
+    sales = db.session.query(SalesPerson).filter(*filters).order_by(SalesPerson.created_at.desc())
+    return sales
 
 def update_sales_service(req: UpdateSalesSchema):
     """更新销售信息"""
