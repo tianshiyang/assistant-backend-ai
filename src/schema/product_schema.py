@@ -16,13 +16,16 @@ from schema.base_schema import PaginationSchema
 class GetProductCategoryListSchema(PaginationSchema):
     category_name = StringField(default="", validators=[])
 
-class GetProductListAllSchema(FlaskForm):
+class GetProductCategoryListAllSchema(FlaskForm):
     name = StringField(default="", validators=[])
 
 class GetProductListSchema(PaginationSchema):
     name = StringField(default="", validators=[])
     category_id = StringField(default="", validators=[])
     product_no = StringField(default="", validators=[])
+
+class GetProductListAllSchema(FlaskForm):
+    name = StringField(default="", validators=[])
 
 class GetProductDetailSchema(FlaskForm):
     id = StringField(default="", validators=[

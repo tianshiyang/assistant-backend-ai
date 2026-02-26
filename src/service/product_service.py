@@ -67,6 +67,15 @@ def get_product_list_service(req: GetProductListSchema) -> Pagination[Product]:
 
     return paginate
 
+def get_product_list_all_service(req: GetProductListAllSchema) -> List[Product]:
+    """获取商品列表不分页"""
+    filter_product = []
+    if req.name.data:
+        filter_product.append(Product.name.ilike('%' + req.name.data + '%'))
+    products = db.session.query(Product).options(joinedload(Product.category)).filter(*filter_product).order_by(Product.created_at.desc())
+
+    return products
+
 def _generate_product_no() -> str:
     """生成商品编号：P + 年月日(YYYYMMDD) + 当日顺序号(3位)，如 P20260225001。
     查询当日最后一个商品编号，在其基础上 +1；当日无商品则从 001 开始。
@@ -86,7 +95,7 @@ def _generate_product_no() -> str:
     else:
         try:
             # 取编号后 3 位为顺序号
-            seq = int(last.customer_no[-3:]) + 1
+            seq = int(last.product_no[-3:]) + 1
         except (ValueError, IndexError):
             seq = 1
     if seq > 999:
