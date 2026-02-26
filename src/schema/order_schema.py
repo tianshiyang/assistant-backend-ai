@@ -30,3 +30,6 @@ class CreateOrderSchema(FlaskForm):
 class PayOrderSchema(FlaskForm):
     order_id = IntegerField(validators=[DataRequired("订单id必传")])
     pay_amount = IntegerField(validators=[DataRequired("支付金额必传")])
+
+class CancelPayOrderSchema(FlaskForm):
+    order_id = IntegerField(validators=[DataRequired("订单id必传")])

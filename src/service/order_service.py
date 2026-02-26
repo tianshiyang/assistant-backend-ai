@@ -16,7 +16,7 @@ from entities.base_entity import Pagination
 from entities.order_entity import OrderStatus
 from model.mysql_model import Orders, OrderItem
 from pkg.exception import FailException
-from schema.order_schema import GetOrderListSchema, CreateOrderSchema, PayOrderSchema
+from schema.order_schema import GetOrderListSchema, CreateOrderSchema, PayOrderSchema, CancelPayOrderSchema
 from service.product_service import get_product_detail_service
 
 
@@ -135,4 +135,11 @@ def pay_order_service(req: PayOrderSchema) -> Orders:
             paid_amount=order.paid_amount + pay_amount,
             order_status=OrderStatus.PAID.value,
         )
+    return order
+
+def cancel_pay_order_service(req: CancelPayOrderSchema) -> Orders:
+    """取消订单"""
+    order_id = req.order_id.data
+    order = get_order_detail_service(order_id)
+    order.update(order_status=OrderStatus.CANCELED.value)
     return order
