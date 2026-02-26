@@ -8,7 +8,7 @@
 """
 
 from sqlalchemy import String, Integer, DateTime, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from model.base_model import BaseModel
 
@@ -70,4 +70,9 @@ class SalesPerson(BaseModel):
         nullable=False,
         default=0,
         comment="逻辑删除标志"
+    )
+
+    orders: Mapped[list["Orders"]] = relationship(
+        "Orders",
+        back_populates="sales",
     )

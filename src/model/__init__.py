@@ -7,7 +7,7 @@
 """
 from model.base_model import BaseModel
 from model.postgres_model import Account, Dataset, Document, Conversation, Message
-from model.mysql_model import Customer, SalesPerson, ProductCategory, Product
+from model.mysql_model import Customer, SalesPerson, ProductCategory, Product, OrderItem, Orders
 
 __all__ = [
     "BaseModel",
@@ -20,5 +20,7 @@ __all__ = [
     "Customer",
     "SalesPerson",
     "ProductCategory",
-    "Product"
+    "Product",
+    "Orders",
+    "OrderItem",
 ]

@@ -8,10 +8,13 @@
 from .customer import Customer
 from .product import Product, ProductCategory
 from .sales_person import SalesPerson
+from .orders import Orders, OrderItem
 
 __all__ = [
     'Customer',
     'Product',
     'ProductCategory',
     'SalesPerson',
+    "Orders",
+    "OrderItem",
 ]
