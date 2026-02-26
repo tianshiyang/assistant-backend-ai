@@ -11,4 +11,5 @@ from handler.order_handler import get_order_list_handler
 
 order_blueprint = Blueprint("order", __name__)
 
+# 获取商品订单列表
 order_blueprint.add_url_rule("/api/manage/order/list", view_func=get_order_list_handler)

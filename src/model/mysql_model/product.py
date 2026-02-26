@@ -9,10 +9,14 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy import String, BigInteger, SmallInteger, Numeric, UniqueConstraint, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from model.base_model import BaseModel
+
+if TYPE_CHECKING:
+    from model.mysql_model import OrderItem
 
 class ProductCategory(BaseModel):
     __bind_key__ = "mysql"
@@ -112,6 +116,11 @@ class Product(BaseModel):
     category: Mapped[ProductCategory] = relationship(
         "ProductCategory",
         back_populates="products",
+    )
+
+    order_item: Mapped["OrderItem"] = relationship(
+        "OrderItem",
+        back_populates="product"
     )
 
     def to_dict(self):
