@@ -51,3 +51,8 @@ class ConversationMaybeQuestionSchema(FlaskForm):
     message_id = StringField("message_id", validators=[
         DataRequired("会话id必传")
     ])
+
+class ManageAiChatSchema(FlaskForm):
+    """AI对话-后台部分"""
+    conversation_id = StringField("conversation_id", validators=[])
+    query = StringField("query", validators=[DataRequired("用户问题必传")])

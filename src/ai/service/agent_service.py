@@ -19,6 +19,7 @@ from langchain_core.runnables import RunnableConfig
 from ai import chat_qianwen_llm
 from ai.agents import dataset_search_agent_tool
 from ai.agents.web_search_agent import web_search_agent_tool
+from ai.service import BaseAgentService
 from entities.ai_entity import Skills
 from ai.prompts.prompts import SUMMARIZATION_MIDDLEWARE_PROMPT, PARENT_AGENT_PROMPT
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -37,7 +38,7 @@ tool_entity = {
 }
 
 
-class AgentService:
+class AgentService(BaseAgentService):
     """AI Agent 服务类"""
 
     def __init__(
@@ -287,11 +288,3 @@ class AgentService:
         )
         await self._handle_stream_chunks(chunks=chunks)
         self._save_messages()
-
-    @staticmethod
-    def get_config(conversation_id: str) -> RunnableConfig:
-        return RunnableConfig(
-            configurable={
-                "thread_id": conversation_id,
-            }
-        )

@@ -5,9 +5,11 @@
 @Author  : tianshiyang
 @File    : __init__.py.py
 """
+
 from .time_format import format_time
 from .data_format import transform_pagination_data
 from .embeddings import embeddings, count_tokens
+from .build_conn import build_mysql_uri
 from .logger import get_module_logger
 
 __all__ = [
@@ -15,5 +17,6 @@ __all__ = [
     "transform_pagination_data",
     "embeddings",
     "count_tokens",
-    "get_module_logger"
+    "get_module_logger",
+    "build_mysql_uri",
 ]

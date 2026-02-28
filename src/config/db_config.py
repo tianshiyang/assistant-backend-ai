@@ -31,6 +31,8 @@ import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
+from utils.build_conn import build_mysql_uri
+
 db = SQLAlchemy()
 
 # ── 通用连接池参数（PostgreSQL / MySQL 共用） ──
@@ -42,17 +44,6 @@ def _pool_options() -> dict:
         "pool_recycle": int(os.getenv("DB_POOL_RECYCLE", "1800")),
         "pool_pre_ping": True,
     }
-
-
-def _build_mysql_uri() -> str:
-    """从环境变量拼装 MySQL URI。"""
-    host = os.getenv("MYSQL_HOST", "127.0.0.1")
-    port = os.getenv("MYSQL_PORT", "3306")
-    user = os.getenv("MYSQL_USER", "root")
-    password = os.getenv("MYSQL_PASSWORD", "")
-    database = os.getenv("MYSQL_DATABASE", "")
-    charset = os.getenv("MYSQL_CHARSET", "utf8mb4")
-    return f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}?charset={charset}"
 
 
 def init_db_config(app: Flask) -> None:
@@ -70,7 +61,7 @@ def init_db_config(app: Flask) -> None:
     if mysql_database:
         app.config["SQLALCHEMY_BINDS"] = {
             "mysql": {
-                "url": _build_mysql_uri(),
+                "url": build_mysql_uri(),
                 "pool_size": int(os.getenv("MYSQL_POOL_SIZE", "10")),
                 "max_overflow": int(os.getenv("MYSQL_MAX_OVERFLOW", "20")),
                 "pool_timeout": int(os.getenv("MYSQL_POOL_TIMEOUT", "300")),

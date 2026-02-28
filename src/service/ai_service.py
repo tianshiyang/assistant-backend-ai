@@ -21,8 +21,8 @@ from model.postgres_model.conversation import Conversation
 from model.postgres_model.message import Message
 from pkg.exception import FailException
 from schema.ai_schema import AIChatSchema, ConversationMessagesSchema, ConversationDeleteSchema, \
-    ConversationUpdateSchema, ConversationMaybeQuestionSchema, ConversationStopSchema
-from task import run_ai_chat_task
+    ConversationUpdateSchema, ConversationMaybeQuestionSchema, ConversationStopSchema, ManageAiChatSchema
+from task import run_ai_chat_task, run_manage_ai_chat_task
 from typing import Generator
 
 def event_stream_service(conversation_id: str) -> Generator:
@@ -221,3 +221,8 @@ def ai_conversation_maybe_question_service(req: ConversationMaybeQuestionSchema,
     })
     question = result['messages'][-1].content.split("\n")
     return question
+
+"""后台会话的ai"""
+def manage_ai_chat_service(req: ManageAiChatSchema, conversation_id: str):
+    """后台管理的ai对话"""
+    run_manage_ai_chat_task.delay()

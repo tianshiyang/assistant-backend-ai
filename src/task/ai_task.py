@@ -25,7 +25,7 @@ def run_ai_chat_task(
         is_new_chat: bool
 ):
     """执行 AI 聊天任务"""
-    from service.agent_service import AgentService
+    from ai.service.agent_service import AgentService
 
     agent_service = AgentService(
         user_id=user_id,
@@ -36,3 +36,7 @@ def run_ai_chat_task(
         is_new_chat=is_new_chat
     )
     asyncio.run(agent_service.build_agent())
+
+@shared_task
+def run_manage_ai_chat_task():
+    pass

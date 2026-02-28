@@ -10,10 +10,10 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from pkg.response import validate_error_json, success_json, success_message
 from schema.ai_schema import AIChatSchema, ConversationMessagesSchema, ConversationDeleteSchema, \
-    ConversationUpdateSchema, ConversationMaybeQuestionSchema, ConversationStopSchema
+    ConversationUpdateSchema, ConversationMaybeQuestionSchema, ConversationStopSchema, ManageAiChatSchema
 from service.ai_service import ai_chat_service, ai_create_conversation_service, event_stream_service, \
     ai_chat_get_conversation_messages_service, ai_conversation_get_all_service, ai_conversation_delete_service, \
-    ai_conversation_update_service, ai_conversation_maybe_question_service, ai_chat_stop_service
+    ai_conversation_update_service, ai_conversation_maybe_question_service, ai_chat_stop_service, manage_ai_chat_service
 from utils import get_module_logger
 
 # 使用统一的日志记录器
@@ -105,3 +105,18 @@ def ai_conversation_maybe_question_handler():
     return success_json({
         "question_list": res
     })
+
+@jwt_required()
+def manage_ai_chat_handler():
+    """后台AI对话"""
+    req = ManageAiChatSchema()
+    if not req.validate():
+        return validate_error_json(req.errors)
+    user_id = get_jwt_identity()
+    conversation_id = req.conversation_id.data
+    if not conversation_id:
+        # 新会话创建会话历史
+        conversation_id = ai_create_conversation_service(user_id).id
+    manage_ai_chat_service(req, conversation_id)
+
+    return success_message("111")

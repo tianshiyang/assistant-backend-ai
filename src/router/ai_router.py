@@ -9,7 +9,7 @@ from flask import Blueprint
 
 from handler.ai_handler import ai_chat_handler, ai_chat_get_conversation_messages_handler, \
     ai_conversation_get_all_handler, ai_conversation_delete_handler, ai_conversation_update_handler, \
-    ai_conversation_maybe_question_handler, ai_chat_stop_handler
+    ai_conversation_maybe_question_handler, ai_chat_stop_handler, manage_ai_chat_handler
 
 ai_blueprint = Blueprint("chat", __name__, url_prefix="")
 
@@ -33,3 +33,7 @@ ai_blueprint.add_url_rule("/api/ai/conversation/update_conversation_title", view
 
 # 生成本地聊天的用户可能问出的问题
 ai_blueprint.add_url_rule("/api/ai/conversation/user_maybe_question", methods=["POST"], view_func=ai_conversation_maybe_question_handler)
+
+"""后台AI接口"""
+# 后台AI对话
+ai_blueprint.add_url_rule("/api/manage/ai/chat", methods=["POST"], view_func=manage_ai_chat_handler)
