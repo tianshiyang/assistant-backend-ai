@@ -15,8 +15,8 @@ from ai.prompts.prompts import TEXT_2_SQL_PROMPT
 
 class GeneratorSqlAgent(BaseSQLAgentService):
     """生成SQL语句的Agent"""
-    def __init__(self, conversation_id: str, question: str) -> None:
-        super().__init__(conversation_id=conversation_id)
+    def __init__(self, conversation_id: str, question: str, user_id: str) -> None:
+        super().__init__(conversation_id=conversation_id, question=question, user_id=user_id)
         self.question = question
 
     def build_sql_agent(self):

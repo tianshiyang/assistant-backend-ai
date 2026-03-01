@@ -11,17 +11,20 @@ import time
 from flask import current_app
 from langchain.agents import create_agent
 from langchain_core.messages import HumanMessage
+from langsmith import expect
 
 from ai import chat_qianwen_llm
 from config.db_config import db
 from ai.prompts.prompts import GENERATED_CONVERSATION_TITLE_PROMPT, GENERATED_USER_MAYBE_QUESTION_PROMPT
-from entities.chat_response_entity import ChatResponseType, ChatResponseEntity
-from entities.redis_entity import REDIS_CHAT_GENERATED_KEY, REDIS_CHAT_STOP_KEY
+from entities.chat_response_entity import ChatResponseType, ChatResponseEntity, SQLManageResponseType, \
+    SQLAgentResponseEntity
+from entities.redis_entity import REDIS_CHAT_GENERATED_KEY, REDIS_CHAT_STOP_KEY, REDIS_TEXT_TO_SQL_KEY
 from model.postgres_model.conversation import Conversation
 from model.postgres_model.message import Message
 from pkg.exception import FailException
 from schema.ai_schema import AIChatSchema, ConversationMessagesSchema, ConversationDeleteSchema, \
-    ConversationUpdateSchema, ConversationMaybeQuestionSchema, ConversationStopSchema, ManageAiChatSchema
+    ConversationUpdateSchema, ConversationMaybeQuestionSchema, ConversationStopSchema, ManageAiChatSchema, \
+    StopManageAiChatSchema
 from task import run_ai_chat_task, run_manage_ai_chat_task
 from typing import Generator
 
@@ -72,6 +75,58 @@ def event_stream_service(conversation_id: str) -> Generator:
                 )
                 yield f"event:message\ndata: {json.dumps(message, ensure_ascii=False)}\n\n"
                 last_ts = time.time()
+    except Exception as e:
+        # 如果发生异常，发送错误消息并退出
+        error_message = ChatResponseEntity(
+            updated_time=time.time(),
+            content=f"流式响应错误: {str(e)}",
+            type=ChatResponseType.ERROR,
+            message_id="",
+            conversation_id=conversation_id,
+            tool_call=None
+        )
+        yield f"event:message\ndata: {json.dumps(error_message, ensure_ascii=False)}\n\n"
+    finally:
+        redis_stream.delete(redis_key)
+
+
+def sql_manage_event_stream_service(conversation_id: str):
+    """Text2Sql的eventStream"""
+    redis_stream = current_app.redis_stream
+    redis_key = REDIS_TEXT_TO_SQL_KEY.format(conversation_id=conversation_id)
+    last_ts = 0
+    last_index = 0
+    should_exit = False # 是否退出循环
+    try:
+        while True:
+            if should_exit:
+                break
+            chunks = redis_stream.lrange(redis_key, last_index, -1)
+            if chunks and len(chunks) > 0:
+                for chunk_json in chunks:
+                    chunk = json.loads(chunk_json)
+                    if chunk["updated_time"] > last_ts:
+                        last_ts = chunk["updated_time"]
+                        yield f"event:message\ndata: {json.dumps(chunk, ensure_ascii=False)}\n\n"
+                    # 检查是否完成或出错
+                    if chunk["type"] in (SQLManageResponseType.DONE.value, SQLManageResponseType.STOP.value, SQLManageResponseType.ERROR.value):
+                        # 设置退出标志
+                        should_exit = True
+                        break
+                        # 更新索引，避免重复处理
+                if chunks:
+                    last_index += len(chunks)
+                elif time.time() - last_ts > 2:
+                    # 超时发送 ping 消息
+                    message = SQLAgentResponseEntity(
+                        updated_time=time.time(),
+                        content="",
+                        type=SQLManageResponseType.PING,
+                        message_id="",
+                        conversation_id=conversation_id,
+                    )
+                    yield f"event:message\ndata: {json.dumps(message, ensure_ascii=False)}\n\n"
+                    last_ts = time.time()
     except Exception as e:
         # 如果发生异常，发送错误消息并退出
         error_message = ChatResponseEntity(
@@ -223,6 +278,18 @@ def ai_conversation_maybe_question_service(req: ConversationMaybeQuestionSchema,
     return question
 
 """后台会话的ai"""
-def manage_ai_chat_service(req: ManageAiChatSchema, conversation_id: str):
+def manage_ai_chat_service(question: str, is_new_chat: bool, conversation_id: str, user_id: str):
     """后台管理的ai对话"""
-    run_manage_ai_chat_task.delay()
+    run_manage_ai_chat_task.delay(
+        conversation_id=conversation_id,
+        question=question,
+        is_new_chat=is_new_chat,
+        user_id=user_id
+    )
+
+def stop_manage_ai_chat_service(req: StopManageAiChatSchema, user_id: str):
+    get_conversation_detail_service(conversation_id=req.conversation_id.data, user_id=user_id)
+    redis_key = REDIS_TEXT_TO_SQL_KEY.format(conversation_id=req.conversation_id.data)
+    redis_client = current_app.redis_stream
+    redis_client.set(redis_key, SQLManageResponseType.STOP.value)
+    return True

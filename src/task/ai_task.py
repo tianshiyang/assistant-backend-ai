@@ -38,5 +38,12 @@ def run_ai_chat_task(
     asyncio.run(agent_service.build_agent())
 
 @shared_task
-def run_manage_ai_chat_task():
-    pass
+def run_manage_ai_chat_task(conversation_id, question: str, is_new_chat: bool, user_id: str):
+    from ai.service.sql_manage_agent_service import SQLManageAgentService
+    sql_agent_service = SQLManageAgentService(
+        conversation_id=conversation_id,
+        question=question,
+        is_new_chat=is_new_chat,
+        user_id=user_id
+    )
+    asyncio.run(sql_agent_service.build_sql_manage_agent())

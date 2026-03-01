@@ -10,7 +10,7 @@ import uuid
 from sqlalchemy import UUID, Integer, Text, VARCHAR, text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from model import BaseModel
+from model.base_model import BaseModel
 
 
 class Message(BaseModel):

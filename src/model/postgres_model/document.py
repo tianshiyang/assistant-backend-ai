@@ -13,7 +13,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from config.db_config import db
 from entities.document_entities import DocumentStatus
-from model import BaseModel
+from model.base_model import BaseModel
 
 
 class Document(BaseModel):

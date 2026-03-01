@@ -10,7 +10,7 @@ import uuid
 from sqlalchemy import UUID, VARCHAR
 from sqlalchemy.orm import Mapped, mapped_column
 
-from model import BaseModel
+from model.base_model import BaseModel
 
 
 class Conversation(BaseModel):

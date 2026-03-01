@@ -10,10 +10,12 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from pkg.response import validate_error_json, success_json, success_message
 from schema.ai_schema import AIChatSchema, ConversationMessagesSchema, ConversationDeleteSchema, \
-    ConversationUpdateSchema, ConversationMaybeQuestionSchema, ConversationStopSchema, ManageAiChatSchema
+    ConversationUpdateSchema, ConversationMaybeQuestionSchema, ConversationStopSchema, ManageAiChatSchema, \
+    StopManageAiChatSchema
 from service.ai_service import ai_chat_service, ai_create_conversation_service, event_stream_service, \
     ai_chat_get_conversation_messages_service, ai_conversation_get_all_service, ai_conversation_delete_service, \
-    ai_conversation_update_service, ai_conversation_maybe_question_service, ai_chat_stop_service, manage_ai_chat_service
+    ai_conversation_update_service, ai_conversation_maybe_question_service, ai_chat_stop_service, \
+    manage_ai_chat_service, sql_manage_event_stream_service, stop_manage_ai_chat_service
 from utils import get_module_logger
 
 # 使用统一的日志记录器
@@ -110,13 +112,38 @@ def ai_conversation_maybe_question_handler():
 def manage_ai_chat_handler():
     """后台AI对话"""
     req = ManageAiChatSchema()
+
     if not req.validate():
         return validate_error_json(req.errors)
+
     user_id = get_jwt_identity()
     conversation_id = req.conversation_id.data
+    is_new_chat = not conversation_id
+
     if not conversation_id:
         # 新会话创建会话历史
         conversation_id = ai_create_conversation_service(user_id).id
-    manage_ai_chat_service(req, conversation_id)
 
-    return success_message("111")
+    print(conversation_id, "conversation_id")
+
+    manage_ai_chat_service(
+        conversation_id=conversation_id,
+        question=req.query.data,
+        is_new_chat=is_new_chat,
+        user_id=user_id
+    )
+
+    return Response(
+        stream_with_context(sql_manage_event_stream_service(conversation_id=conversation_id)),
+        mimetype="text/event-stream; charset=utf-8"
+    )
+
+@jwt_required()
+def stop_manage_ai_chat_handler():
+    """停止后台Text2SQL的AI对话"""
+    req = StopManageAiChatSchema()
+    if not req.validate():
+        return validate_error_json(req.errors)
+    user_id = get_jwt_identity()
+    stop_manage_ai_chat_service(req=req, user_id=user_id)
+    return success_message("停止会话成功")

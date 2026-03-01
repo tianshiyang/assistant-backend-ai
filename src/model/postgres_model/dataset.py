@@ -11,7 +11,7 @@ from sqlalchemy import UUID, Text, VARCHAR
 from sqlalchemy.orm import Mapped, mapped_column
 
 from entities.dataset_entities import DatasetStatus
-from model import BaseModel
+from model.base_model import BaseModel
 
 class Dataset(BaseModel):
     __tablename__ = "dataset"

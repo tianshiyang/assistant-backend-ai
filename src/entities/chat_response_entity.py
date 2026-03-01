@@ -31,12 +31,12 @@ class ChatResponseType(str, Enum):
     ERROR = "error"
     GET_TOOLS = "get_tools"  # 获取可调用的工具
     TOOL_PROCESS = "tool_process_data" # 工具执行的过程数据
-    GENERATE_SUCCESS = "generate_success"
     TOOL = "tool"
-    TOOL_RESULT = "tool_result"
-    SAVE_TOKEN = "save_token"
+    TOOL_RESULT = "tool_result" # 工具返回结果
+    SAVE_TOKEN = "save_token" # 保存token用量
     GENERATE = "generate"
     CREATE_CONVERSATION = "create_conversation"
+
 
 # 搜索工具执行返回的结果实体（用于 response_format，必须是 Pydantic BaseModel）
 class SearchToolProcessDataSchema(BaseModel):
@@ -65,6 +65,28 @@ class ChatResponseEntity(TypedDict):
 class AgentContextSchema(TypedDict):
     dataset_ids: NotRequired[list[str]]
     function_callable: Callable[[ChatResponseType, str], None]
+
+class SQLManageResponseType(str, Enum):
+    STOP = "stop"
+    PING = "ping"
+    DONE = "done"
+    ERROR = "error"
+    INTERACTION = "interaction"  # 人机交互
+    TOOL_CALL = "tool_call" # 工具调用
+    TOOL_RESULT = "tool_result"  # 工具返回结果
+    SAVE_TOKEN = "save_token"  # 保存token用量
+    GENERATE = "generate"
+    CREATE_CONVERSATION = "create_conversation" # 新会话，创建会话
+    REWRITE_QUESTION_START = "rewrite_question_START" # 重写用户的问题(开始)
+    REWRITE_QUESTION_END = "rewrite_question_END" # 重写用户问题(结束)
+
+# SQLAgent实体
+class SQLAgentResponseEntity(TypedDict):
+    updated_time: float
+    content: Any
+    message_id: str
+    type: SQLManageResponseType # SQLAgent返回实体的类型
+    conversation_id: str
 
 # if __name__ == "__main__":
 #     result = ChatResponseEntity(
