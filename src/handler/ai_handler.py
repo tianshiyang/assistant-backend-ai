@@ -11,7 +11,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from pkg.response import validate_error_json, success_json, success_message
 from schema.ai_schema import AIChatSchema, ConversationMessagesSchema, ConversationDeleteSchema, \
     ConversationUpdateSchema, ConversationMaybeQuestionSchema, ConversationStopSchema, ManageAiChatSchema, \
-    StopManageAiChatSchema
+    StopManageAiChatSchema, GetConversationListAllSchema
 from service.ai_service import ai_chat_service, ai_create_conversation_service, event_stream_service, \
     ai_chat_get_conversation_messages_service, ai_conversation_get_all_service, ai_conversation_delete_service, \
     ai_conversation_update_service, ai_conversation_maybe_question_service, ai_chat_stop_service, \
@@ -31,7 +31,7 @@ def ai_chat_handler():
     is_new_chat = conversation_id is None or not conversation_id
     if is_new_chat:
         # 如果没传递conversation_id，则代表的是一个新的会话
-        conversation = ai_create_conversation_service(user_id)
+        conversation = ai_create_conversation_service(user_id, 'skills')
         conversation_id = str(conversation.id)
 
     logger.info(f"是否是新的会话：{is_new_chat}, 新的{conversation_id}")
@@ -71,8 +71,11 @@ def ai_chat_get_conversation_messages_handler():
 @jwt_required()
 def ai_conversation_get_all_handler():
     """获取所有会话列表"""
+    req = GetConversationListAllSchema(request.args)
+    if not req.validate():
+        return validate_error_json(req.errors)
     user_id = get_jwt_identity()
-    resp = ai_conversation_get_all_service(user_id=user_id)
+    resp = ai_conversation_get_all_service(user_id=user_id, req=req)
     result = []
     for message in resp:
         result.append(message.to_dict())
@@ -122,7 +125,7 @@ def manage_ai_chat_handler():
 
     if not conversation_id:
         # 新会话创建会话历史
-        conversation_id = ai_create_conversation_service(user_id).id
+        conversation_id = ai_create_conversation_service(user_id, 'manage').id
 
     print(conversation_id, "conversation_id")
 

@@ -11,6 +11,11 @@ from wtforms.validators import DataRequired, Optional
 from schema.schema import ListField
 
 
+class GetConversationListAllSchema(FlaskForm):
+    type = StringField("type", validators=[
+        DataRequired(message="会话类型不能为空")
+    ])
+
 class AIChatSchema(FlaskForm):
     """聊天"""
     dataset_ids = ListField("dataset_ids", default=[])

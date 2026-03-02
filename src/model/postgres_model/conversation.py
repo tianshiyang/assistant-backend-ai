@@ -35,3 +35,9 @@ class Conversation(BaseModel):
         nullable=False,
         comment="用户id",
     )
+
+    type: Mapped[str] = mapped_column(
+        VARCHAR(30),
+        nullable=False,
+        comment="历史记录类型，skills技能，manage后台系统agent"
+    )

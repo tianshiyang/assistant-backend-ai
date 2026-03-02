@@ -24,9 +24,10 @@ from model.postgres_model.message import Message
 from pkg.exception import FailException
 from schema.ai_schema import AIChatSchema, ConversationMessagesSchema, ConversationDeleteSchema, \
     ConversationUpdateSchema, ConversationMaybeQuestionSchema, ConversationStopSchema, ManageAiChatSchema, \
-    StopManageAiChatSchema
+    StopManageAiChatSchema, GetConversationListAllSchema
 from task import run_ai_chat_task, run_manage_ai_chat_task
-from typing import Generator
+from typing import Generator, Literal
+
 
 def event_stream_service(conversation_id: str) -> Generator:
     """
@@ -142,11 +143,12 @@ def sql_manage_event_stream_service(conversation_id: str):
         redis_stream.delete(redis_key)
 
 
-def ai_create_conversation_service(user_id: str) -> Conversation:
+def ai_create_conversation_service(user_id: str, conversation_type: Literal['skills', 'manage']) -> Conversation:
     """创建新会话"""
     conversation = Conversation(
         name="新会话",
         user_id=user_id,
+        type=conversation_type
     ).create()
     return conversation
 
@@ -182,10 +184,11 @@ def ai_chat_get_conversation_messages_service(req: ConversationMessagesSchema, u
         Message.created_at.asc()
     ).all()
 
-def ai_conversation_get_all_service(user_id: str) -> list[Conversation]:
+def ai_conversation_get_all_service(user_id: str, req: GetConversationListAllSchema) -> list[Conversation]:
     """获取所有会话"""
     return db.session.query(Conversation).filter(
-        Conversation.user_id == user_id
+        Conversation.user_id == user_id,
+        Conversation.type == req.type.data
     ).order_by(
         Conversation.created_at.desc()
     ).all()
