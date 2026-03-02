@@ -143,10 +143,10 @@ def sql_manage_event_stream_service(conversation_id: str):
         redis_stream.delete(redis_key)
 
 
-def ai_create_conversation_service(user_id: str, conversation_type: Literal['skills', 'manage']) -> Conversation:
+def ai_create_conversation_service(user_id: str, conversation_type: Literal['skills', 'manage'], chat_name: str = "新会话") -> Conversation:
     """创建新会话"""
     conversation = Conversation(
-        name="新会话",
+        name=chat_name,
         user_id=user_id,
         type=conversation_type
     ).create()
