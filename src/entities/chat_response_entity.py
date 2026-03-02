@@ -77,8 +77,8 @@ class SQLManageResponseType(str, Enum):
     SAVE_TOKEN = "save_token"  # 保存token用量
     GENERATE = "generate"
     CREATE_CONVERSATION = "create_conversation" # 新会话，创建会话
-    REWRITE_QUESTION_START = "rewrite_question_START" # 重写用户的问题(开始)
-    REWRITE_QUESTION_END = "rewrite_question_END" # 重写用户问题(结束)
+    REWRITE_QUESTION_START = "rewrite_question_start" # 重写用户的问题(开始)
+    REWRITE_QUESTION_END = "rewrite_question_end" # 重写用户问题(结束)
 
 # SQLAgent实体
 class SQLAgentResponseEntity(TypedDict):
