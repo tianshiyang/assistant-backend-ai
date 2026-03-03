@@ -51,7 +51,7 @@ class BaseSQLAgentService(BaseAgentService):
         if is_new_chat:
             self._send_chunk_to_redis(SQLAgentResponseEntity(
                 updated_time=time.time(),
-                content="",
+                content=str(self.conversation_id),
                 type=SQLManageResponseType.CREATE_CONVERSATION,
                 message_id=str(self._message.id),
                 conversation_id=str(self.conversation_id),
@@ -76,14 +76,16 @@ class BaseSQLAgentService(BaseAgentService):
             question=self.raw_user_question,
             messages=json.dumps(self._ai_chunks),
             answer=self._ai_full_answer,
-            input_tokens=self._token_dict.get("input_tokens"),
-            output_tokens=self._token_dict.get("output_tokens"),
-            total_tokens=self._token_dict.get("total_tokens"),
+            input_tokens=self._token_dict.get("input_tokens") if self._token_dict else 0,
+            output_tokens=self._token_dict.get("output_tokens") if self._token_dict else 0,
+            total_tokens=self._token_dict.get("total_tokens") if self._token_dict else 0,
         )
 
     def _send_chunk_to_redis(self, payload: SQLAgentResponseEntity):
         """发送消息到redis中"""
-        self._ai_chunks.append(payload)
+        if payload["type"] != SQLManageResponseType.CREATE_CONVERSATION:
+            # 创建回话不存入历史消息
+            self._ai_chunks.append(payload)
         redis_key = REDIS_TEXT_TO_SQL_KEY.format(conversation_id=self.conversation_id)
         self._redis_client.rpush(redis_key, json.dumps(payload, ensure_ascii=False))
 
@@ -139,6 +141,10 @@ class BaseSQLAgentService(BaseAgentService):
         is_stopped = False
         _final_answer_tokens = None
         async for chunk in chunks:
+            # 判断是否停止
+            is_stopped = self._stop_text_to_sql_chat()
+            if is_stopped:
+                break
             last_message = chunk['messages'][-1]
             logger.info("当前last_message: %s", last_message.pretty_print)
             if isinstance(last_message, ToolMessage):
@@ -178,9 +184,6 @@ class BaseSQLAgentService(BaseAgentService):
                 if hasattr(last_message, "usage_metadata") and last_message.usage_metadata:
                     _final_answer_tokens = last_message.usage_metadata
                     logger.info(f"_final_answer_tokens信息：{_final_answer_tokens}")
-            if self._stop_text_to_sql_chat():
-                # 有停止标识则停止会话
-                break
 
         # # 存储token消耗
         if _final_answer_tokens:

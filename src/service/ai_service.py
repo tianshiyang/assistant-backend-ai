@@ -18,7 +18,7 @@ from config.db_config import db
 from ai.prompts.prompts import GENERATED_CONVERSATION_TITLE_PROMPT, GENERATED_USER_MAYBE_QUESTION_PROMPT
 from entities.chat_response_entity import ChatResponseType, ChatResponseEntity, SQLManageResponseType, \
     SQLAgentResponseEntity
-from entities.redis_entity import REDIS_CHAT_GENERATED_KEY, REDIS_CHAT_STOP_KEY, REDIS_TEXT_TO_SQL_KEY
+from entities.redis_entity import REDIS_CHAT_GENERATED_KEY, REDIS_CHAT_STOP_KEY, REDIS_TEXT_TO_SQL_KEY, REDIS_TEXT_STOP_TEXT_TO_SQL
 from model.postgres_model.conversation import Conversation
 from model.postgres_model.message import Message
 from pkg.exception import FailException
@@ -130,13 +130,12 @@ def sql_manage_event_stream_service(conversation_id: str):
                 last_ts = time.time()
     except Exception as e:
         # 如果发生异常，发送错误消息并退出
-        error_message = ChatResponseEntity(
+        error_message = SQLAgentResponseEntity(
             updated_time=time.time(),
             content=f"流式响应错误: {str(e)}",
-            type=ChatResponseType.ERROR,
+            type=SQLManageResponseType.ERROR,
             message_id="",
             conversation_id=conversation_id,
-            tool_call=None
         )
         yield f"event:message\ndata: {json.dumps(error_message, ensure_ascii=False)}\n\n"
     finally:
@@ -292,7 +291,7 @@ def manage_ai_chat_service(question: str, is_new_chat: bool, conversation_id: st
 
 def stop_manage_ai_chat_service(req: StopManageAiChatSchema, user_id: str):
     get_conversation_detail_service(conversation_id=req.conversation_id.data, user_id=user_id)
-    redis_key = REDIS_TEXT_TO_SQL_KEY.format(conversation_id=req.conversation_id.data)
+    redis_key = REDIS_TEXT_STOP_TEXT_TO_SQL.format(conversation_id=req.conversation_id.data)
     redis_client = current_app.redis_stream
     redis_client.set(redis_key, SQLManageResponseType.STOP.value)
     return True
