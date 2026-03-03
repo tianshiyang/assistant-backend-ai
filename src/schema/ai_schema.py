@@ -60,6 +60,7 @@ class ConversationMaybeQuestionSchema(FlaskForm):
 class ManageAiChatSchema(FlaskForm):
     """AI对话-后台部分"""
     conversation_id = StringField("conversation_id", validators=[])
+    message_id = StringField("message_id", validators=[])
     query = StringField("query", validators=[DataRequired("用户问题必传")])
 
 class StopManageAiChatSchema(FlaskForm):
@@ -67,3 +68,14 @@ class StopManageAiChatSchema(FlaskForm):
     conversation_id = StringField("conversation_id", validators=[
         DataRequired("会话ID必传")
     ])
+
+class InteractionManageAiChatSchema(FlaskForm):
+    """人机回话"""
+    conversation_id = StringField("conversation_id", validators=[
+        DataRequired("会话ID必传")
+    ])
+    # 人机交互时用于恢复执行的内容（如 approve/reject/edit 等决策或编辑后的内容）
+    resume = StringField("resume", validators=[
+        DataRequired("人机交互内容必传")
+    ])
+    message_id = StringField("message_id", validators=[DataRequired("会话id必传")])

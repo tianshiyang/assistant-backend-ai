@@ -10,7 +10,7 @@ from flask import Blueprint
 from handler.ai_handler import ai_chat_handler, ai_chat_get_conversation_messages_handler, \
     ai_conversation_get_all_handler, ai_conversation_delete_handler, ai_conversation_update_handler, \
     ai_conversation_maybe_question_handler, ai_chat_stop_handler, manage_ai_chat_handler, \
-    stop_manage_ai_chat_handler
+    stop_manage_ai_chat_handler, interaction_ai_chat_handler
 
 ai_blueprint = Blueprint("chat", __name__, url_prefix="")
 
@@ -41,3 +41,8 @@ ai_blueprint.add_url_rule("/api/manage/ai/chat", methods=["POST"], view_func=man
 
 # 停止后台AI对话
 ai_blueprint.add_url_rule("/api/manage/ai/chat/stop", methods=["POST"], view_func=stop_manage_ai_chat_handler)
+
+# 中断节点的继续对话
+ai_blueprint.add_url_rule("/api/manage/ai/chat/interaction", methods=["POST"], view_func=interaction_ai_chat_handler)
+
+# 获取后续的输出内容

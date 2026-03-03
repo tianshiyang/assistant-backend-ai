@@ -11,7 +11,6 @@ import time
 from flask import current_app
 from langchain.agents import create_agent
 from langchain_core.messages import HumanMessage
-from langsmith import expect
 
 from ai import chat_qianwen_llm
 from config.db_config import db
@@ -24,8 +23,8 @@ from model.postgres_model.message import Message
 from pkg.exception import FailException
 from schema.ai_schema import AIChatSchema, ConversationMessagesSchema, ConversationDeleteSchema, \
     ConversationUpdateSchema, ConversationMaybeQuestionSchema, ConversationStopSchema, ManageAiChatSchema, \
-    StopManageAiChatSchema, GetConversationListAllSchema
-from task import run_ai_chat_task, run_manage_ai_chat_task
+    StopManageAiChatSchema, GetConversationListAllSchema, InteractionManageAiChatSchema
+from task import run_ai_chat_task, run_manage_ai_chat_task, run_interaction_manage_ai_chat_task
 from typing import Generator, Literal
 
 
@@ -286,7 +285,7 @@ def manage_ai_chat_service(question: str, is_new_chat: bool, conversation_id: st
         conversation_id=conversation_id,
         question=question,
         is_new_chat=is_new_chat,
-        user_id=user_id
+        user_id=user_id,
     )
 
 def stop_manage_ai_chat_service(req: StopManageAiChatSchema, user_id: str):
@@ -295,3 +294,12 @@ def stop_manage_ai_chat_service(req: StopManageAiChatSchema, user_id: str):
     redis_client = current_app.redis_stream
     redis_client.set(redis_key, SQLManageResponseType.STOP.value)
     return True
+
+def interaction_ai_chat_service(req: InteractionManageAiChatSchema, user_id: str):
+    """人机交互恢复执行"""
+    run_interaction_manage_ai_chat_task.delay(
+        conversation_id=req.conversation_id.data,
+        resume=req.resume.data,
+        user_id=user_id,
+        message_id=req.message_id.data
+    )

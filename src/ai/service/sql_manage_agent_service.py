@@ -7,6 +7,7 @@
 """
 import asyncio
 import time
+from typing import Literal
 
 import dotenv
 from langchain.agents import create_agent
@@ -14,13 +15,18 @@ from langchain.agents.middleware import SummarizationMiddleware, HumanInTheLoopM
 from langchain.tools import tool
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from langgraph.types import Command
 
 from ai import chat_qianwen_llm
 from ai.agents.sql_agents import GeneratorSqlAgent, get_rewrite_question_agent_chain, BaseSQLAgentService
 from ai.prompts.prompts import SUMMARIZATION_MIDDLEWARE_PROMPT, VISUALIZATION_AGENT_PROMPT
 from entities.chat_response_entity import SQLAgentResponseEntity, ChatResponseType, SQLManageResponseType
+from utils import get_module_logger
 
 dotenv.load_dotenv()
+
+# 获取日志记录器
+logger = get_module_logger(__name__)
 
 @tool
 def generator_sql_tool(conversation_id: str, question: str, user_id: str) -> str:
@@ -40,11 +46,35 @@ def generator_sql_tool(conversation_id: str, question: str, user_id: str) -> str
 
 class SQLManageAgentService(BaseSQLAgentService):
     """后台管理系统的agent"""
-    def __init__(self, conversation_id: str, question: str, is_new_chat: bool, user_id: str) -> None:
+    def __init__(self, conversation_id: str, question: str, is_new_chat: bool, user_id: str, chat_type: Literal['interaction', 'chat'], message_id: str) -> None:
         super().__init__(conversation_id=conversation_id, question=question, user_id=user_id)
 
         # 初始化message信息
-        self.init_message(is_new_chat=is_new_chat)
+        self.init_message(is_new_chat=is_new_chat, chat_type=chat_type, message_id=message_id)
+
+    def init_sql_agent(self, checkpointer):
+        """获取agent"""
+        return create_agent(
+            model=chat_qianwen_llm,
+            middleware=[
+                SummarizationMiddleware(
+                    model=chat_qianwen_llm,
+                    trigger=[('tokens', 4000), ("messages", 100)],
+                    summary_prompt=SUMMARIZATION_MIDDLEWARE_PROMPT
+                ),
+                HumanInTheLoopMiddleware(
+                    interrupt_on={
+                        "sql_db_query": InterruptOnConfig(
+                            allowed_decisions=["approve", 'reject', 'edit']
+                        )
+                    },
+                    description_prefix="请确认如下用户信息："
+                )
+            ],
+            tools=[generator_sql_tool, *self.tools],
+            system_prompt=VISUALIZATION_AGENT_PROMPT,
+            checkpointer=checkpointer,
+        )
 
     async def build_sql_manage_agent(self):
 
@@ -81,27 +111,7 @@ class SQLManageAgentService(BaseSQLAgentService):
             ))
 
             # text_2_sql agent
-            manage_agent = create_agent(
-                model=chat_qianwen_llm,
-                middleware=[
-                    SummarizationMiddleware(
-                        model=chat_qianwen_llm,
-                        trigger=[('tokens', 4000), ("messages", 100)],
-                        summary_prompt=SUMMARIZATION_MIDDLEWARE_PROMPT
-                    ),
-                    HumanInTheLoopMiddleware(
-                        interrupt_on={
-                            "sql_db_query": InterruptOnConfig(
-                                allowed_decisions=["approve", 'reject', 'edit']
-                            )
-                        },
-                        description_prefix="请确认如下用户信息："
-                    )
-                ],
-                tools=[generator_sql_tool, *self.tools],
-                system_prompt=VISUALIZATION_AGENT_PROMPT,
-                checkpointer=checkpointer,
-            )
+            manage_agent = self.init_sql_agent(checkpointer=checkpointer)
 
             chunks = manage_agent.astream(
                 {
@@ -113,13 +123,35 @@ class SQLManageAgentService(BaseSQLAgentService):
 
             await self._handle_manage_chunks(chunks)
             # 完成后保存会话消息
-            self._update_messages()
+            self._update_messages(chat_type="chat")
+
+    async def continue_sql_manage_agent(self, resume: str):
+        """人机交互后继续执行"""
+
+        async with AsyncPostgresSaver.from_conn_string(self.db_uri) as checkpointer:
+            manage_agent = self.init_sql_agent(checkpointer=checkpointer)
+
+            # 使用 Command(resume=...) 从中断点继续执行
+
+            chunks = manage_agent.astream(
+                Command(resume={
+                    "decisions": [{
+                        "type": "approve"
+                    }]
+                }),
+                stream_mode="values",
+                config=self.config
+            )
+
+            await self._handle_manage_chunks(chunks)
+            # 完成后保存会话消息
+            self._update_messages(chat_type="interaction")
 
 if __name__ == "__main__":
     async def run_agent():
         # execute_agent = GeneratorSqlAgentService(question="我现在有哪些商品", conversation_id="conversation_123")
         # execute_agent.build_sql_agent()
-        execute_agent = SQLManageAgentService(question="我现在有哪些商品", conversation_id="conversation_123", is_new_chat=False, user_id="tianshiyang")
+        execute_agent = SQLManageAgentService(question="我现在有哪些商品", conversation_id="conversation_123", is_new_chat=False, user_id="tianshiyang", chat_type="chat")
         await execute_agent.build_sql_manage_agent()
 
     asyncio.run(run_agent())

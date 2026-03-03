@@ -11,11 +11,11 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from pkg.response import validate_error_json, success_json, success_message
 from schema.ai_schema import AIChatSchema, ConversationMessagesSchema, ConversationDeleteSchema, \
     ConversationUpdateSchema, ConversationMaybeQuestionSchema, ConversationStopSchema, ManageAiChatSchema, \
-    StopManageAiChatSchema, GetConversationListAllSchema
+    StopManageAiChatSchema, GetConversationListAllSchema, InteractionManageAiChatSchema
 from service.ai_service import ai_chat_service, ai_create_conversation_service, event_stream_service, \
     ai_chat_get_conversation_messages_service, ai_conversation_get_all_service, ai_conversation_delete_service, \
     ai_conversation_update_service, ai_conversation_maybe_question_service, ai_chat_stop_service, \
-    manage_ai_chat_service, sql_manage_event_stream_service, stop_manage_ai_chat_service
+    manage_ai_chat_service, sql_manage_event_stream_service, stop_manage_ai_chat_service, interaction_ai_chat_service
 from utils import get_module_logger
 
 # 使用统一的日志记录器
@@ -136,7 +136,7 @@ def manage_ai_chat_handler():
         conversation_id=conversation_id,
         question=req.query.data,
         is_new_chat=is_new_chat,
-        user_id=user_id
+        user_id=user_id,
     )
 
     return Response(
@@ -153,3 +153,12 @@ def stop_manage_ai_chat_handler():
     user_id = get_jwt_identity()
     stop_manage_ai_chat_service(req=req, user_id=user_id)
     return success_message("停止会话成功")
+
+@jwt_required()
+def interaction_ai_chat_handler():
+    req = InteractionManageAiChatSchema()
+    if not req.validate():
+        return validate_error_json(req.errors)
+    user_id = get_jwt_identity()
+    interaction_ai_chat_service(req=req, user_id=user_id)
+    return success_message("人机对话重启成功")

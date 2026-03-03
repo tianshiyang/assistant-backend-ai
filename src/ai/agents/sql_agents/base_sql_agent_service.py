@@ -8,7 +8,7 @@
 import json
 import os
 import time
-from typing import AsyncIterator
+from typing import AsyncIterator, Literal
 
 from flask import current_app
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
@@ -19,6 +19,7 @@ from ai import chat_qianwen_llm
 from ai.service import BaseAgentService
 from entities.chat_response_entity import SQLAgentResponseEntity, SQLManageResponseType
 from entities.redis_entity import REDIS_TEXT_TO_SQL_KEY, REDIS_TEXT_STOP_TEXT_TO_SQL
+from service.ai_service import get_message_detail_service
 from service.message_service import create_message_service
 from utils import build_mysql_uri, get_module_logger
 
@@ -45,17 +46,22 @@ class BaseSQLAgentService(BaseAgentService):
         self._ai_full_answer = "" # AI返回的完整的答案
         self._token_dict = None # 消耗token的情况
 
-    def init_message(self, is_new_chat: bool):
+    def init_message(self, is_new_chat: bool, chat_type: Literal['chat', 'interaction'], message_id: str):
         """初始化message对象，先创建一个message消息"""
-        self._create_message()
-        if is_new_chat:
-            self._send_chunk_to_redis(SQLAgentResponseEntity(
-                updated_time=time.time(),
-                content=str(self.conversation_id),
-                type=SQLManageResponseType.CREATE_CONVERSATION,
-                message_id=str(self._message.id),
-                conversation_id=str(self.conversation_id),
-            ))
+        if chat_type == 'interaction':
+            # 人机交互的节点，直接返回message对象即可
+            self._message = get_message_detail_service(message_id, user_id=self.user_id)
+        if chat_type == 'chat':
+            # 普通聊天节点，正常新增message
+            self._create_message()
+            if is_new_chat:
+                self._send_chunk_to_redis(SQLAgentResponseEntity(
+                    updated_time=time.time(),
+                    content=str(self.conversation_id),
+                    type=SQLManageResponseType.CREATE_CONVERSATION,
+                    message_id=str(self._message.id),
+                    conversation_id=str(self.conversation_id),
+                ))
 
     def _create_message(self):
         """创建一个一条消息"""
@@ -70,16 +76,30 @@ class BaseSQLAgentService(BaseAgentService):
             total_tokens=0,
         )
 
-    def _update_messages(self):
+    def _update_messages(self, chat_type: Literal['chat', 'interaction']):
         """保存聊天内容到message表中"""
-        self._message.update(
-            question=self.raw_user_question,
-            messages=json.dumps(self._ai_chunks),
-            answer=self._ai_full_answer,
-            input_tokens=self._token_dict.get("input_tokens") if self._token_dict else 0,
-            output_tokens=self._token_dict.get("output_tokens") if self._token_dict else 0,
-            total_tokens=self._token_dict.get("total_tokens") if self._token_dict else 0,
-        )
+        if chat_type == 'chat':
+            self._message.update(
+                question=self.raw_user_question,
+                messages=json.dumps(self._ai_chunks),
+                answer=self._ai_full_answer,
+                input_tokens=self._token_dict.get("input_tokens") if self._token_dict else 0,
+                output_tokens=self._token_dict.get("output_tokens") if self._token_dict else 0,
+                total_tokens=self._token_dict.get("total_tokens") if self._token_dict else 0,
+            )
+        elif chat_type == 'interaction':
+            cur_message = self._message.to_dict().get("messages", [])
+            cur_message.extend(self._ai_chunks)
+            cur_answer = self._message.to_dict().get("answer", [])
+
+            logger.info(f"cur_message: {cur_message}")
+            self._message.update(
+                messages=json.dumps(cur_message),
+                answer=cur_answer + self._ai_full_answer,
+                input_tokens=self._token_dict.get("input_tokens") if self._token_dict else 0,
+                output_tokens=self._token_dict.get("output_tokens") if self._token_dict else 0,
+                total_tokens=self._token_dict.get("total_tokens") if self._token_dict else 0,
+            )
 
     def _send_chunk_to_redis(self, payload: SQLAgentResponseEntity):
         """发送消息到redis中"""
@@ -181,26 +201,16 @@ class BaseSQLAgentService(BaseAgentService):
         return answer_tokens
 
     def _handle_interrupt_process(self, interrupt):
+        """处理中断节点"""
         logger.info(f"interrupt: {interrupt}")
-
-        # 将 Interrupt 对象序列化为可 JSON 的内容
-        try:
-            for interrupt_chunk in interrupt:
-                self._send_chunk_to_redis(SQLAgentResponseEntity(
-                    updated_time=time.time(),
-                    content=interrupt_chunk.value.get("action_requests"),
-                    conversation_id=str(self.conversation_id),
-                    message_id=str(self._message.id),
-                    type=SQLManageResponseType.INTERACTION,
-                ))
-            # if hasattr(interrupt, "model_dump") and callable(getattr(interrupt, "model_dump")):
-            #     interrupt_content = interrupt.model_dump()
-            # elif hasattr(interrupt, "dict") and callable(getattr(interrupt, "dict")):
-            #     interrupt_content = interrupt.dict()
-            # else:
-            #     interrupt_content = str(interrupt)
-        except Exception:
-            interrupt_content = str(interrupt)
+        for interrupt_chunk in interrupt:
+            self._send_chunk_to_redis(SQLAgentResponseEntity(
+                updated_time=time.time(),
+                content=interrupt_chunk.value.get("action_requests"),
+                conversation_id=str(self.conversation_id),
+                message_id=str(self._message.id),
+                type=SQLManageResponseType.INTERACTION,
+            ))
 
 
 
@@ -224,7 +234,7 @@ class BaseSQLAgentService(BaseAgentService):
                 _final_answer_tokens = self._handle_manage_chunks_process(chunk)
 
         # # 存储token消耗
-        if _final_answer_tokens:
+        if _final_answer_tokens and not is_interrupted:
             self._save_use_tokens(_final_answer_tokens)
 
         if not is_stopped and not is_interrupted:
