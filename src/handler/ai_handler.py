@@ -125,11 +125,11 @@ def manage_ai_chat_handler():
 
     if not conversation_id:
         # 新会话创建会话历史
-        conversation_id = ai_create_conversation_service(
+        conversation_id = str(ai_create_conversation_service(
             user_id=user_id,
             conversation_type='manage',
             chat_name=req.query.data
-        ).id
+        ).id)
 
 
     manage_ai_chat_service(

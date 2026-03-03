@@ -46,7 +46,6 @@ class SQLManageAgentService(BaseSQLAgentService):
         # 初始化message信息
         self.init_message(is_new_chat=is_new_chat)
 
-
     async def build_sql_manage_agent(self):
 
         async with AsyncPostgresSaver.from_conn_string(self.db_uri) as checkpointer:
@@ -100,7 +99,7 @@ class SQLManageAgentService(BaseSQLAgentService):
                 {
                     "messages": [HumanMessage(content=rewrite_question)]
                 },
-                stream_mode="messages",
+                stream_mode="values",
                 config=self.config
             )
 

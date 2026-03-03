@@ -114,20 +114,20 @@ def sql_manage_event_stream_service(conversation_id: str):
                         # 设置退出标志
                         should_exit = True
                         break
-                        # 更新索引，避免重复处理
+                # 更新索引，避免重复处理
                 if chunks:
                     last_index += len(chunks)
-                elif time.time() - last_ts > 2:
-                    # 超时发送 ping 消息
-                    message = SQLAgentResponseEntity(
-                        updated_time=time.time(),
-                        content="",
-                        type=SQLManageResponseType.PING,
-                        message_id="",
-                        conversation_id=conversation_id,
-                    )
-                    yield f"event:message\ndata: {json.dumps(message, ensure_ascii=False)}\n\n"
-                    last_ts = time.time()
+            elif time.time() - last_ts > 2:
+                # 超时发送 ping 消息（无新 chunk 时保持连接）
+                message = SQLAgentResponseEntity(
+                    updated_time=time.time(),
+                    content="",
+                    type=SQLManageResponseType.PING,
+                    message_id="",
+                    conversation_id=conversation_id,
+                )
+                yield f"event:message\ndata: {json.dumps(message, ensure_ascii=False)}\n\n"
+                last_ts = time.time()
     except Exception as e:
         # 如果发生异常，发送错误消息并退出
         error_message = ChatResponseEntity(

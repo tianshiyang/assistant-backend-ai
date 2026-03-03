@@ -73,6 +73,7 @@ class SQLManageResponseType(str, Enum):
     ERROR = "error"
     INTERACTION = "interaction"  # 人机交互
     TOOL_CALL = "tool_call" # 工具调用
+    TOOL_PARAMS = "tool_params" # 工具参数
     TOOL_RESULT = "tool_result"  # 工具返回结果
     SAVE_TOKEN = "save_token"  # 保存token用量
     GENERATE = "generate"

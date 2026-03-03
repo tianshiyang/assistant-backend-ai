@@ -139,53 +139,56 @@ class BaseSQLAgentService(BaseAgentService):
         is_stopped = False
         _final_answer_tokens = None
         async for chunk in chunks:
-            if self._stop_text_to_sql_chat():
-                # 有停止标识则停止会话
-                break
-            if isinstance(chunk, tuple) and len(chunk) == 2:
-                message_chunk, metadata = chunk
-                if isinstance(message_chunk, AIMessage):
-                    if hasattr(message_chunk, "tool_calls") and message_chunk.tool_calls and message_chunk.tool_calls[0]['name']:
-                        # 工具调用
-                        self._send_chunk_to_redis(SQLAgentResponseEntity(
-                            updated_time=time.time(),
-                            content=message_chunk.tool_calls[0]['name'],
-                            type=SQLManageResponseType.TOOL_CALL,
-                            message_id=str(self._message.id),
-                            conversation_id=str(self.conversation_id),
-                        ))
-                    elif hasattr(message_chunk, "content") and message_chunk.content:
-                        # 保存AI输出内容
-                        self._send_chunk_to_redis(SQLAgentResponseEntity(
-                            updated_time=time.time(),
-                            content=message_chunk.content,
-                            type=SQLManageResponseType.GENERATE,
-                            message_id=str(self._message.id),
-                            conversation_id=str(self.conversation_id),
-                        ))
-                        self._ai_full_answer += message_chunk.content
-                elif isinstance(message_chunk, ToolMessage):
-                    # 工具执行结果
+            last_message = chunk['messages'][-1]
+            logger.info("当前last_message: %s", last_message.pretty_print)
+            if isinstance(last_message, ToolMessage):
+                # 工具调用结果
+                self._send_chunk_to_redis(SQLAgentResponseEntity(
+                    updated_time=time.time(),
+                    content=last_message.content,
+                    type=SQLManageResponseType.TOOL_RESULT,
+                    message_id=str(self._message.id),
+                    conversation_id=str(self.conversation_id),
+                ))
+            elif isinstance(last_message, AIMessage):
+                if hasattr(last_message, "tool_calls") and last_message.tool_calls:
                     self._send_chunk_to_redis(SQLAgentResponseEntity(
                         updated_time=time.time(),
-                        content=message_chunk.content,
-                        type=SQLManageResponseType.TOOL_RESULT,
+                        content=last_message.tool_calls[0]['name'],
+                        type=SQLManageResponseType.TOOL_CALL,
                         message_id=str(self._message.id),
                         conversation_id=str(self.conversation_id),
                     ))
-                # 检查是否有 usage_metadata（token 统计）
-                if hasattr(message_chunk, "usage_metadata") and message_chunk.usage_metadata:
-                    _final_answer_tokens = message_chunk.usage_metadata
-            logger.info(chunk)
+                    self._send_chunk_to_redis(SQLAgentResponseEntity(
+                        updated_time=time.time(),
+                        content=last_message.tool_calls[0]['args'],
+                        type=SQLManageResponseType.TOOL_PARAMS,
+                        message_id=str(self._message.id),
+                        conversation_id=str(self.conversation_id),
+                    ))
+                elif hasattr(last_message, "content") and last_message.content:
+                    self._send_chunk_to_redis(SQLAgentResponseEntity(
+                        updated_time=time.time(),
+                        content=last_message.content,
+                        type=SQLManageResponseType.GENERATE,
+                        message_id=str(self._message.id),
+                        conversation_id=str(self.conversation_id),
+                    ))
+                    self._ai_full_answer = last_message.content
+                if hasattr(last_message, "usage_metadata") and last_message.usage_metadata:
+                    _final_answer_tokens = last_message.usage_metadata
+                    logger.info(f"_final_answer_tokens信息：{_final_answer_tokens}")
+            if self._stop_text_to_sql_chat():
+                # 有停止标识则停止会话
+                break
 
-        # 存储token消耗
-        if _final_answer_tokens is not None:
+        # # 存储token消耗
+        if _final_answer_tokens:
             self._save_use_tokens(_final_answer_tokens)
 
         if not is_stopped:
             self._save_finished_message()
 
-        logger.info(self._ai_full_answer, "完整答案")
 
     def _save_finished_message(self):
         """发送完成事件"""
