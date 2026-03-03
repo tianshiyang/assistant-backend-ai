@@ -10,7 +10,7 @@ import time
 
 import dotenv
 from langchain.agents import create_agent
-from langchain.agents.middleware import SummarizationMiddleware
+from langchain.agents.middleware import SummarizationMiddleware, HumanInTheLoopMiddleware, InterruptOnConfig
 from langchain.tools import tool
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -88,6 +88,14 @@ class SQLManageAgentService(BaseSQLAgentService):
                         model=chat_qianwen_llm,
                         trigger=[('tokens', 4000), ("messages", 100)],
                         summary_prompt=SUMMARIZATION_MIDDLEWARE_PROMPT
+                    ),
+                    HumanInTheLoopMiddleware(
+                        interrupt_on={
+                            "sql_db_query": InterruptOnConfig(
+                                allowed_decisions=["approve", 'reject', 'edit']
+                            )
+                        },
+                        description_prefix="请确认如下用户信息："
                     )
                 ],
                 tools=[generator_sql_tool, *self.tools],

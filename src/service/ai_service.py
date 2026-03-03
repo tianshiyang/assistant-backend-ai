@@ -110,7 +110,7 @@ def sql_manage_event_stream_service(conversation_id: str):
                         last_ts = chunk["updated_time"]
                         yield f"event:message\ndata: {json.dumps(chunk, ensure_ascii=False)}\n\n"
                     # 检查是否完成或出错
-                    if chunk["type"] in (SQLManageResponseType.DONE.value, SQLManageResponseType.STOP.value, SQLManageResponseType.ERROR.value):
+                    if chunk["type"] in (SQLManageResponseType.DONE.value, SQLManageResponseType.STOP.value, SQLManageResponseType.ERROR.value, SQLManageResponseType.INTERACTION.value):
                         # 设置退出标志
                         should_exit = True
                         break

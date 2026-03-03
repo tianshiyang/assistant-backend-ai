@@ -136,60 +136,98 @@ class BaseSQLAgentService(BaseAgentService):
             return True
         return False
 
+    def _handle_manage_chunks_process(self, chunk):
+        """处理普通的message信息"""
+        answer_tokens = None
+        last_message = chunk['messages'][-1]
+        logger.info("当前last_message: %s", last_message.pretty_print)
+        if isinstance(last_message, ToolMessage):
+            # 工具调用结果
+            self._send_chunk_to_redis(SQLAgentResponseEntity(
+                updated_time=time.time(),
+                content=last_message.content,
+                type=SQLManageResponseType.TOOL_RESULT,
+                message_id=str(self._message.id),
+                conversation_id=str(self.conversation_id),
+            ))
+        elif isinstance(last_message, AIMessage):
+            if hasattr(last_message, "tool_calls") and last_message.tool_calls:
+                self._send_chunk_to_redis(SQLAgentResponseEntity(
+                    updated_time=time.time(),
+                    content=last_message.tool_calls[0]['name'],
+                    type=SQLManageResponseType.TOOL_CALL,
+                    message_id=str(self._message.id),
+                    conversation_id=str(self.conversation_id),
+                ))
+                self._send_chunk_to_redis(SQLAgentResponseEntity(
+                    updated_time=time.time(),
+                    content=last_message.tool_calls[0]['args'],
+                    type=SQLManageResponseType.TOOL_PARAMS,
+                    message_id=str(self._message.id),
+                    conversation_id=str(self.conversation_id),
+                ))
+            elif hasattr(last_message, "content") and last_message.content:
+                self._send_chunk_to_redis(SQLAgentResponseEntity(
+                    updated_time=time.time(),
+                    content=last_message.content,
+                    type=SQLManageResponseType.GENERATE,
+                    message_id=str(self._message.id),
+                    conversation_id=str(self.conversation_id),
+                ))
+                self._ai_full_answer = last_message.content
+            if hasattr(last_message, "usage_metadata") and last_message.usage_metadata:
+                answer_tokens = last_message.usage_metadata
+                logger.info(f"answer_tokens信息：{answer_tokens}")
+        return answer_tokens
+
+    def _handle_interrupt_process(self, interrupt):
+        logger.info(f"interrupt: {interrupt}")
+
+        # 将 Interrupt 对象序列化为可 JSON 的内容
+        try:
+            for interrupt_chunk in interrupt:
+                self._send_chunk_to_redis(SQLAgentResponseEntity(
+                    updated_time=time.time(),
+                    content=interrupt_chunk.value.get("action_requests"),
+                    conversation_id=str(self.conversation_id),
+                    message_id=str(self._message.id),
+                    type=SQLManageResponseType.INTERACTION,
+                ))
+            # if hasattr(interrupt, "model_dump") and callable(getattr(interrupt, "model_dump")):
+            #     interrupt_content = interrupt.model_dump()
+            # elif hasattr(interrupt, "dict") and callable(getattr(interrupt, "dict")):
+            #     interrupt_content = interrupt.dict()
+            # else:
+            #     interrupt_content = str(interrupt)
+        except Exception:
+            interrupt_content = str(interrupt)
+
+
+
     async def _handle_manage_chunks(self, chunks: AsyncIterator):
         """处理agent的返回结果"""
         is_stopped = False
+        is_interrupted = False
         _final_answer_tokens = None
         async for chunk in chunks:
             # 判断是否停止
             is_stopped = self._stop_text_to_sql_chat()
             if is_stopped:
                 break
-            last_message = chunk['messages'][-1]
-            logger.info("当前last_message: %s", last_message.pretty_print)
-            if isinstance(last_message, ToolMessage):
-                # 工具调用结果
-                self._send_chunk_to_redis(SQLAgentResponseEntity(
-                    updated_time=time.time(),
-                    content=last_message.content,
-                    type=SQLManageResponseType.TOOL_RESULT,
-                    message_id=str(self._message.id),
-                    conversation_id=str(self.conversation_id),
-                ))
-            elif isinstance(last_message, AIMessage):
-                if hasattr(last_message, "tool_calls") and last_message.tool_calls:
-                    self._send_chunk_to_redis(SQLAgentResponseEntity(
-                        updated_time=time.time(),
-                        content=last_message.tool_calls[0]['name'],
-                        type=SQLManageResponseType.TOOL_CALL,
-                        message_id=str(self._message.id),
-                        conversation_id=str(self.conversation_id),
-                    ))
-                    self._send_chunk_to_redis(SQLAgentResponseEntity(
-                        updated_time=time.time(),
-                        content=last_message.tool_calls[0]['args'],
-                        type=SQLManageResponseType.TOOL_PARAMS,
-                        message_id=str(self._message.id),
-                        conversation_id=str(self.conversation_id),
-                    ))
-                elif hasattr(last_message, "content") and last_message.content:
-                    self._send_chunk_to_redis(SQLAgentResponseEntity(
-                        updated_time=time.time(),
-                        content=last_message.content,
-                        type=SQLManageResponseType.GENERATE,
-                        message_id=str(self._message.id),
-                        conversation_id=str(self.conversation_id),
-                    ))
-                    self._ai_full_answer = last_message.content
-                if hasattr(last_message, "usage_metadata") and last_message.usage_metadata:
-                    _final_answer_tokens = last_message.usage_metadata
-                    logger.info(f"_final_answer_tokens信息：{_final_answer_tokens}")
+            if '__interrupt__' in chunk:
+                # 处理中断类型的消息
+                self._handle_interrupt_process(interrupt = chunk["__interrupt__"])
+                is_interrupted = True
+                break
+            elif "messages" in chunk:
+                # 处理普通消息
+                _final_answer_tokens = self._handle_manage_chunks_process(chunk)
 
         # # 存储token消耗
         if _final_answer_tokens:
             self._save_use_tokens(_final_answer_tokens)
 
-        if not is_stopped:
+        if not is_stopped and not is_interrupted:
             self._save_finished_message()
 
 
