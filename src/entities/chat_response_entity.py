@@ -72,6 +72,7 @@ class SQLManageResponseType(str, Enum):
     DONE = "done"
     ERROR = "error"
     INTERACTION = "interaction"  # 人机交互
+    INTERACTION_RESULT = "interaction_result" # 人机交互的结果
     TOOL_CALL = "tool_call" # 工具调用
     TOOL_PARAMS = "tool_params" # 工具参数
     TOOL_RESULT = "tool_result"  # 工具返回结果

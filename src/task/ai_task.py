@@ -51,7 +51,7 @@ def run_manage_ai_chat_task(conversation_id, question: str, is_new_chat: bool, u
     asyncio.run(sql_agent_service.build_sql_manage_agent())
 
 @shared_task
-def run_interaction_manage_ai_chat_task(conversation_id, resume: str, user_id: str, message_id: str):
+def run_interaction_manage_ai_chat_task(conversation_id, resume: dict, user_id: str, message_id: str):
     from ai.service.sql_manage_agent_service import SQLManageAgentService
     # 这里不再需要重新提问，因此 question 传空串，且 is_new_chat=False
     sql_agent_service = SQLManageAgentService(

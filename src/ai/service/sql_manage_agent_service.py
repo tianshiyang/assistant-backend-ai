@@ -6,6 +6,7 @@
 @File    : sql_manage_agent_service.py
 """
 import asyncio
+import json
 import time
 from typing import Literal
 
@@ -125,7 +126,7 @@ class SQLManageAgentService(BaseSQLAgentService):
             # 完成后保存会话消息
             self._update_messages(chat_type="chat")
 
-    async def continue_sql_manage_agent(self, resume: str):
+    async def continue_sql_manage_agent(self, resume: dict):
         """人机交互后继续执行"""
 
         async with AsyncPostgresSaver.from_conn_string(self.db_uri) as checkpointer:
@@ -135,13 +136,19 @@ class SQLManageAgentService(BaseSQLAgentService):
 
             chunks = manage_agent.astream(
                 Command(resume={
-                    "decisions": [{
-                        "type": "approve"
-                    }]
+                    "decisions": [resume]
                 }),
                 stream_mode="values",
                 config=self.config
             )
+
+            self._send_chunk_to_redis(SQLAgentResponseEntity(
+                content=json.dumps(resume),
+                type=SQLManageResponseType.INTERACTION_RESULT,
+                updated_time=time.time(),
+                message_id=str(self._message.id),
+                conversation_id=str(self.conversation_id)
+            ))
 
             await self._handle_manage_chunks(chunks)
             # 完成后保存会话消息

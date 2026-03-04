@@ -8,7 +8,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField
 from wtforms.validators import DataRequired, Optional
-from schema.schema import ListField
+from schema.schema import ListField, DictField
 
 
 class GetConversationListAllSchema(FlaskForm):
@@ -75,7 +75,13 @@ class InteractionManageAiChatSchema(FlaskForm):
         DataRequired("会话ID必传")
     ])
     # 人机交互时用于恢复执行的内容（如 approve/reject/edit 等决策或编辑后的内容）
-    resume = StringField("resume", validators=[
+    resume = DictField("resume", validators=[
         DataRequired("人机交互内容必传")
     ])
     message_id = StringField("message_id", validators=[DataRequired("会话id必传")])
+
+class ContinueManageAIChatSchema(FlaskForm):
+    """继续获取人机对话后的输出内容"""
+    conversation_id = StringField("conversation_id", validators=[
+        DataRequired("会话ID必传")
+    ])
