@@ -7,6 +7,7 @@
 """
 import json
 import os
+import re
 import time
 from typing import AsyncIterator, Literal
 
@@ -156,6 +157,30 @@ class BaseSQLAgentService(BaseAgentService):
             return True
         return False
 
+    @staticmethod
+    def _extract_json_content(text: str) -> str:
+        """从 AI 回复中提取 JSON，去除模型可能添加的前缀/后缀文字"""
+        text = text.strip()
+        # 去掉 markdown 代码块包裹
+        text = re.sub(r'^```(?:json)?\s*', '', text)
+        text = re.sub(r'\s*```$', '', text)
+        text = text.strip()
+
+        # 尝试找到最外层的 { ... } 并验证是合法 JSON
+        first_brace = text.find('{')
+        if first_brace != -1:
+            last_brace = text.rfind('}')
+            if last_brace > first_brace:
+                candidate = text[first_brace:last_brace + 1]
+                try:
+                    json.loads(candidate)
+                    return candidate
+                except json.JSONDecodeError:
+                    pass
+
+        # 提取失败，按原文兜底包装为 text 类型
+        return json.dumps({"type": "text", "content": text}, ensure_ascii=False)
+
     def _handle_manage_chunks_process(self, chunk):
         """处理普通的message信息"""
         answer_tokens = None
@@ -187,14 +212,15 @@ class BaseSQLAgentService(BaseAgentService):
                     conversation_id=str(self.conversation_id),
                 ))
             elif hasattr(last_message, "content") and last_message.content:
+                cleaned = self._extract_json_content(last_message.content)
                 self._send_chunk_to_redis(SQLAgentResponseEntity(
                     updated_time=time.time(),
-                    content=last_message.content,
+                    content=cleaned,
                     type=SQLManageResponseType.GENERATE,
                     message_id=str(self._message.id),
                     conversation_id=str(self.conversation_id),
                 ))
-                self._ai_full_answer = last_message.content
+                self._ai_full_answer = cleaned
             if hasattr(last_message, "usage_metadata") and last_message.usage_metadata:
                 answer_tokens = last_message.usage_metadata
                 logger.info(f"answer_tokens信息：{answer_tokens}")
@@ -214,22 +240,29 @@ class BaseSQLAgentService(BaseAgentService):
 
 
 
-    async def _handle_manage_chunks(self, chunks: AsyncIterator):
-        """处理agent的返回结果"""
+    async def _handle_manage_chunks(self, chunks: AsyncIterator, seen_msg_count: int = 0):
+        """处理agent的返回结果
+        :param chunks: agent 的流式输出
+        :param seen_msg_count: 已处理过的消息数量（用于 resume 时跳过旧状态重放）
+        """
         is_stopped = False
         is_interrupted = False
         _final_answer_tokens = None
         async for chunk in chunks:
             # 判断是否停止
             is_stopped = self._stop_text_to_sql_chat()
-            if is_stopped:
+            if is_stopped or is_interrupted:
                 break
             if '__interrupt__' in chunk:
                 # 处理中断类型的消息
-                self._handle_interrupt_process(interrupt = chunk["__interrupt__"])
+                self._handle_interrupt_process(interrupt=chunk["__interrupt__"])
                 is_interrupted = True
                 break
             elif "messages" in chunk:
+                current_count = len(chunk['messages'])
+                if current_count <= seen_msg_count:
+                    continue
+                seen_msg_count = current_count
                 # 处理普通消息
                 _final_answer_tokens = self._handle_manage_chunks_process(chunk)
 

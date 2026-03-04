@@ -130,17 +130,13 @@ class SQLManageAgentService(BaseSQLAgentService):
         """人机交互后继续执行"""
 
         async with AsyncPostgresSaver.from_conn_string(self.db_uri) as checkpointer:
-            manage_agent = self.init_sql_agent(checkpointer=checkpointer)
-
-            # 使用 Command(resume=...) 从中断点继续执行
-
-            chunks = manage_agent.astream(
-                Command(resume={
-                    "decisions": [resume]
-                }),
-                stream_mode="values",
-                config=self.config
+            checkpoint = await checkpointer.aget(self.config)
+            existing_msg_count = len(
+                (checkpoint or {}).get("channel_values", {}).get("messages", [])
             )
+            logger.info(f"resume前已有消息数: {existing_msg_count}, resume值: {resume}")
+
+            manage_agent = self.init_sql_agent(checkpointer=checkpointer)
 
             self._send_chunk_to_redis(SQLAgentResponseEntity(
                 content=json.dumps(resume),
@@ -150,8 +146,28 @@ class SQLManageAgentService(BaseSQLAgentService):
                 conversation_id=str(self.conversation_id)
             ))
 
-            await self._handle_manage_chunks(chunks)
-            # 完成后保存会话消息
+            if resume.get("type") == "reject":
+                # 拒绝：不走 agent resume，直接结束
+                reject_msg = resume.get("message", "用户已拒绝执行，会话终止")
+                content = json.dumps({"type": "text", "content": reject_msg}, ensure_ascii=False)
+                self._send_chunk_to_redis(SQLAgentResponseEntity(
+                    updated_time=time.time(),
+                    content=content,
+                    type=SQLManageResponseType.GENERATE,
+                    message_id=str(self._message.id),
+                    conversation_id=str(self.conversation_id),
+                ))
+                self._ai_full_answer = content
+                self._save_finished_message()
+            else:
+                # approve / edit：正常恢复 agent 执行
+                chunks = manage_agent.astream(
+                    Command(resume={"decisions": [resume]}),
+                    stream_mode="values",
+                    config=self.config
+                )
+                await self._handle_manage_chunks(chunks, seen_msg_count=existing_msg_count)
+
             self._update_messages(chat_type="interaction")
 
 if __name__ == "__main__":
