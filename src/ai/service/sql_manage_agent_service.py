@@ -47,11 +47,11 @@ def generator_sql_tool(conversation_id: str, question: str, user_id: str) -> str
 
 class SQLManageAgentService(BaseSQLAgentService):
     """后台管理系统的agent"""
-    def __init__(self, conversation_id: str, question: str, is_new_chat: bool, user_id: str, chat_type: Literal['interaction', 'chat'], message_id: str) -> None:
+    def __init__(self, conversation_id: str, question: str, user_id: str, chat_type: Literal['interaction', 'chat'], message_id: str) -> None:
         super().__init__(conversation_id=conversation_id, question=question, user_id=user_id)
 
         # 初始化message信息
-        self.init_message(is_new_chat=is_new_chat, chat_type=chat_type, message_id=message_id)
+        self.init_message(chat_type=chat_type, message_id=message_id)
 
     def init_sql_agent(self, checkpointer):
         """获取agent"""
@@ -174,7 +174,7 @@ if __name__ == "__main__":
     async def run_agent():
         # execute_agent = GeneratorSqlAgentService(question="我现在有哪些商品", conversation_id="conversation_123")
         # execute_agent.build_sql_agent()
-        execute_agent = SQLManageAgentService(question="我现在有哪些商品", conversation_id="conversation_123", is_new_chat=False, user_id="tianshiyang", chat_type="chat")
+        execute_agent = SQLManageAgentService(question="我现在有哪些商品", conversation_id="conversation_123", user_id="tianshiyang", chat_type="chat")
         await execute_agent.build_sql_manage_agent()
 
     asyncio.run(run_agent())

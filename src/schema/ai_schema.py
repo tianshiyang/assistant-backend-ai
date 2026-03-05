@@ -61,7 +61,7 @@ class ManageAiChatSchema(FlaskForm):
     """AI对话-后台部分"""
     conversation_id = StringField("conversation_id", validators=[])
     message_id = StringField("message_id", validators=[])
-    query = StringField("query", validators=[DataRequired("用户问题必传")])
+    question = StringField("query", validators=[DataRequired("用户问题必传")])
 
 class StopManageAiChatSchema(FlaskForm):
     """停止Text2SQL的AI对话"""
@@ -85,3 +85,7 @@ class ContinueManageAIChatSchema(FlaskForm):
     conversation_id = StringField("conversation_id", validators=[
         DataRequired("会话ID必传")
     ])
+
+class CreateConversationSchema(FlaskForm):
+    question = StringField("question", validators=[DataRequired("会话名称必传")])
+    conversation_type = StringField("conversation_type", validators=[DataRequired("会话类型必传")])

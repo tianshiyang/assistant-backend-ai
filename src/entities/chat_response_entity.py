@@ -23,7 +23,6 @@ class ChatResponseType(str, Enum):
     tool_result-工具返回结果
     tool_process_data-工具执行的过程数据
     generates-生成内容
-    create_conversation-生成会话
     """
     STOP = "stop"
     PING = "ping"
@@ -35,7 +34,6 @@ class ChatResponseType(str, Enum):
     TOOL_RESULT = "tool_result" # 工具返回结果
     SAVE_TOKEN = "save_token" # 保存token用量
     GENERATE = "generate"
-    CREATE_CONVERSATION = "create_conversation"
 
 
 # 搜索工具执行返回的结果实体（用于 response_format，必须是 Pydantic BaseModel）
@@ -78,7 +76,6 @@ class SQLManageResponseType(str, Enum):
     TOOL_RESULT = "tool_result"  # 工具返回结果
     SAVE_TOKEN = "save_token"  # 保存token用量
     GENERATE = "generate"
-    CREATE_CONVERSATION = "create_conversation" # 新会话，创建会话
     REWRITE_QUESTION_START = "rewrite_question_start" # 重写用户的问题(开始)
     REWRITE_QUESTION_END = "rewrite_question_end" # 重写用户问题(结束)
 

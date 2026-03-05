@@ -48,7 +48,6 @@ class AgentService(BaseAgentService):
             conversation_id: str,
             dataset_ids: list[str],
             skills: list[Skills],
-            is_new_chat: bool
     ):
         """
         初始化 AgentService
@@ -59,9 +58,7 @@ class AgentService(BaseAgentService):
             conversation_id: 会话ID
             dataset_ids: 数据集ID列表
             skills: 技能列表
-            is_new_chat: 是否新会话
         """
-        self.is_new_chat = is_new_chat
         self.user_id = user_id
         self.dataset_ids = dataset_ids
         self.question = question
@@ -228,19 +225,6 @@ class AgentService(BaseAgentService):
         """构建智能体并执行异步流式响应"""
         # 创建一条消息，用于获取当前消息的message_id
         self._create_messages()
-
-        if self.is_new_chat:
-            logger.info("向redis中添加了一条创建会话的消息")
-            # 如果是新会话，则保存conversation_id并返回给前端
-            self._update_chunk_to_redis(ChatResponseEntity(
-                updated_time=time.time(),
-                content="",
-                type=ChatResponseType.CREATE_CONVERSATION,
-                tool_call=None,
-                message_id=str(self._message.id),
-                conversation_id=self.conversation_id
-            ))
-
         db_uri = os.getenv("POSTGRES_SHOT_MEMORY_URI")
 
         try:

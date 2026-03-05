@@ -141,7 +141,7 @@ def sql_manage_event_stream_service(conversation_id: str):
         redis_stream.delete(redis_key)
 
 
-def ai_create_conversation_service(user_id: str, conversation_type: Literal['skills', 'manage'], chat_name: str = "新会话") -> Conversation:
+def ai_create_conversation_service(user_id: str, conversation_type: Literal['skills', 'manage'], chat_name: str) -> Conversation:
     """创建新会话"""
     conversation = Conversation(
         name=chat_name,
@@ -150,7 +150,7 @@ def ai_create_conversation_service(user_id: str, conversation_type: Literal['ski
     ).create()
     return conversation
 
-def ai_chat_service(req: AIChatSchema, user_id: str, conversation_id: str, is_new_chat: str):
+def ai_chat_service(req: AIChatSchema, user_id: str, conversation_id: str):
     """AI聊天"""
     skills = req.skills.data
     question = req.question.data
@@ -162,7 +162,6 @@ def ai_chat_service(req: AIChatSchema, user_id: str, conversation_id: str, is_ne
         question=question,
         dataset_ids=dataset_ids,
         skills=skills,
-        is_new_chat=is_new_chat
     )
 
 def ai_chat_stop_service(req: ConversationStopSchema, user_id: str):
@@ -279,12 +278,11 @@ def ai_conversation_maybe_question_service(req: ConversationMaybeQuestionSchema,
     return question
 
 """后台会话的ai"""
-def manage_ai_chat_service(question: str, is_new_chat: bool, conversation_id: str, user_id: str):
+def manage_ai_chat_service(question: str, conversation_id: str, user_id: str):
     """后台管理的ai对话"""
     run_manage_ai_chat_task.delay(
         conversation_id=conversation_id,
         question=question,
-        is_new_chat=is_new_chat,
         user_id=user_id,
     )
 

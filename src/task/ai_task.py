@@ -22,7 +22,6 @@ def run_ai_chat_task(
         question: str,
         dataset_ids: list[str],
         skills: list[Skills],
-        is_new_chat: bool
 ):
     """执行 AI 聊天任务"""
     from ai.service.agent_service import AgentService
@@ -33,17 +32,15 @@ def run_ai_chat_task(
         question=question,
         dataset_ids=dataset_ids,
         skills=skills,
-        is_new_chat=is_new_chat
     )
     asyncio.run(agent_service.build_agent())
 
 @shared_task
-def run_manage_ai_chat_task(conversation_id, question: str, is_new_chat: bool, user_id: str, message_id: str = None):
+def run_manage_ai_chat_task(conversation_id, question: str, user_id: str, message_id: str = None):
     from ai.service.sql_manage_agent_service import SQLManageAgentService
     sql_agent_service = SQLManageAgentService(
         conversation_id=conversation_id,
         question=question,
-        is_new_chat=is_new_chat,
         user_id=user_id,
         chat_type="chat",
         message_id=message_id
@@ -53,11 +50,10 @@ def run_manage_ai_chat_task(conversation_id, question: str, is_new_chat: bool, u
 @shared_task
 def run_interaction_manage_ai_chat_task(conversation_id, resume: dict, user_id: str, message_id: str):
     from ai.service.sql_manage_agent_service import SQLManageAgentService
-    # 这里不再需要重新提问，因此 question 传空串，且 is_new_chat=False
+    # 这里不再需要重新提问，因此 question 传空串
     sql_agent_service = SQLManageAgentService(
         conversation_id=conversation_id,
         question="",
-        is_new_chat=False,
         user_id=user_id,
         chat_type="interaction",
         message_id=message_id

@@ -47,7 +47,7 @@ class BaseSQLAgentService(BaseAgentService):
         self._ai_full_answer = "" # AI返回的完整的答案
         self._token_dict = None # 消耗token的情况
 
-    def init_message(self, is_new_chat: bool, chat_type: Literal['chat', 'interaction'], message_id: str):
+    def init_message(self, chat_type: Literal['chat', 'interaction'], message_id: str):
         """初始化message对象，先创建一个message消息"""
         if chat_type == 'interaction':
             # 人机交互的节点，直接返回message对象即可
@@ -55,14 +55,6 @@ class BaseSQLAgentService(BaseAgentService):
         if chat_type == 'chat':
             # 普通聊天节点，正常新增message
             self._create_message()
-            if is_new_chat:
-                self._send_chunk_to_redis(SQLAgentResponseEntity(
-                    updated_time=time.time(),
-                    content=str(self.conversation_id),
-                    type=SQLManageResponseType.CREATE_CONVERSATION,
-                    message_id=str(self._message.id),
-                    conversation_id=str(self.conversation_id),
-                ))
 
     def _create_message(self):
         """创建一个一条消息"""
@@ -104,9 +96,7 @@ class BaseSQLAgentService(BaseAgentService):
 
     def _send_chunk_to_redis(self, payload: SQLAgentResponseEntity):
         """发送消息到redis中"""
-        if payload["type"] != SQLManageResponseType.CREATE_CONVERSATION:
-            # 创建回话不存入历史消息
-            self._ai_chunks.append(payload)
+        self._ai_chunks.append(payload)
         redis_key = REDIS_TEXT_TO_SQL_KEY.format(conversation_id=self.conversation_id)
         self._redis_client.rpush(redis_key, json.dumps(payload, ensure_ascii=False))
 

@@ -10,9 +10,13 @@ from flask import Blueprint
 from handler.ai_handler import ai_chat_handler, ai_chat_get_conversation_messages_handler, \
     ai_conversation_get_all_handler, ai_conversation_delete_handler, ai_conversation_update_handler, \
     ai_conversation_maybe_question_handler, ai_chat_stop_handler, manage_ai_chat_handler, \
-    stop_manage_ai_chat_handler, interaction_ai_chat_handler, continue_interaction_ai_chat_handler
+    stop_manage_ai_chat_handler, interaction_ai_chat_handler, continue_interaction_ai_chat_handler, \
+    create_conversation_handler
 
 ai_blueprint = Blueprint("chat", __name__, url_prefix="")
+
+# 创建回话
+ai_blueprint.add_url_rule("/api/ai/conversation/create", methods=["POST"], view_func=create_conversation_handler)
 
 # 对话
 ai_blueprint.add_url_rule("/api/ai/chat", methods=["POST"], view_func=ai_chat_handler)
